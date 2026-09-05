@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dziennik Elektroniczny - Lekcje, Kalendarz i Numerki</title>
+  <title>Dziennik Elektroniczny</title>
   <style>
     :root {
       --bg-primary: #f4f6f9;
       --card-bg: #ffffff;
-      --text-main: #333333;
-      --border-color: #e0e0e0;
+      --text-main: #2c3e50;
+      --border-color: #e2e8f0;
       
       --color-admin: #6c5ce7;
-      --color-teacher: #0984e3;
-      --color-student: #00b894;
-      --role-current: #0984e3;
+      --color-teacher: #2563eb;
+      --color-student: #10b981;
+      --role-current: #2563eb;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
     body {
@@ -38,7 +38,7 @@
       padding: 30px;
       background: var(--card-bg);
       border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
       text-align: center;
     }
 
@@ -50,31 +50,37 @@
     .form-group label {
       display: block;
       margin-bottom: 5px;
-      font-size: 0.9rem;
-      color: #636e72;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
     }
 
     .form-group input, .form-group select, .form-group textarea {
       width: 100%;
-      padding: 10px;
+      padding: 10px 12px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--role-current);
     }
 
     .btn {
-      width: 100%;
-      padding: 10px 15px;
+      padding: 10px 16px;
       border: none;
       border-radius: 6px;
       background-color: var(--role-current);
       color: white;
-      font-weight: bold;
+      font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s;
+      transition: background 0.2s, opacity 0.2s;
     }
 
-    .btn:hover { opacity: 0.9; }
+    .btn:hover { opacity: 0.95; }
+    .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
 
     .app-header {
       background-color: var(--role-current);
@@ -96,7 +102,7 @@
 
     .btn-logout {
       background: transparent;
-      border: 1px solid white;
+      border: 1px solid rgba(255,255,255,0.6);
       color: white;
       padding: 6px 12px;
       border-radius: 4px;
@@ -126,7 +132,7 @@
     }
 
     .sidebar-menu li a:hover, .sidebar-menu li a.active {
-      background: #f0f4f8;
+      background: #f1f5f9;
       border-left-color: var(--role-current);
       color: var(--role-current);
     }
@@ -142,7 +148,8 @@
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid var(--border-color);
     }
 
     .week-calendar {
@@ -153,13 +160,12 @@
     }
 
     .day-card {
-      background: #f8f9fa;
+      background: #f8fafc;
       border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 12px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s;
     }
 
     .day-card.active {
@@ -183,11 +189,6 @@
       border-radius: 6px;
       background: var(--card-bg);
       cursor: pointer;
-      transition: border-color 0.2s;
-    }
-
-    .lesson-item:hover {
-      border-color: var(--role-current);
     }
 
     .lesson-tabs {
@@ -204,6 +205,7 @@
       border-bottom: 3px solid transparent;
       font-weight: bold;
       cursor: pointer;
+      color: #64748b;
     }
 
     .tab-btn.active {
@@ -211,19 +213,129 @@
       color: var(--role-current);
     }
 
-    table {
+    /* STYLIZACJA PROFESJONALNEJ TABELI OCEN */
+    .grades-table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .grades-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      font-size: 0.9rem;
     }
 
-    th, td {
-      border: 1px solid var(--border-color);
-      padding: 10px 12px;
+    .grades-table th, .grades-table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border-color);
       text-align: left;
+      vertical-align: middle;
     }
 
-    th { background-color: #f8f9fa; }
+    .grades-table th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+
+    .grades-table tr:hover {
+      background-color: #f8fafc;
+    }
+
+    .grades-cell-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    /* BADGE DLA OCENY */
+    .grade-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: #fff;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* KOLORYSTYKA OCEN NIERUCHOMYCH */
+    .grade-6 { background-color: #7c3aed; }
+    .grade-5 { background-color: #2563eb; }
+    .grade-4 { background-color: #059669; }
+    .grade-3 { background-color: #d97706; }
+    .grade-2 { background-color: #ea580c; }
+    .grade-1 { background-color: #dc2626; }
+
+    .grade-badge .grade-category {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      font-size: 0.6rem;
+      background: #0f172a;
+      color: white;
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .average-badge {
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-card {
+      background: white;
+      border-radius: 10px;
+      padding: 24px;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #64748b;
+    }
+
     .hidden { display: none !important; }
     .form-inline { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
 
@@ -244,14 +356,14 @@
         <input type="email" id="login-email" required placeholder="wprowadz email">
       </div>
       <div class="form-group">
-        <label>Haslo</label>
+        <label>Hasło</label>
         <input type="password" id="login-password" required placeholder="wprowadz haslo">
       </div>
-      <button type="submit" class="btn">Zaloguj sie</button>
+      <button type="submit" class="btn">Zaloguj się</button>
     </form>
   </div>
 
-  <!-- APLIKACJA GLOWNA -->
+  <!-- APLIKACJA GŁÓWNA -->
   <div id="app-section" class="hidden">
     <header class="app-header">
       <h2>Dziennik Elektroniczny</h2>
@@ -267,6 +379,45 @@
         <ul class="sidebar-menu" id="sidebar-menu"></ul>
       </nav>
       <main class="main-content" id="main-content"></main>
+    </div>
+  </div>
+
+  <!-- MODAL DO WSTAWIANIA OCENY -->
+  <div id="grade-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-student-name">Dodaj ocenę</h3>
+        <button class="modal-close" id="btn-close-modal">&times;</button>
+      </div>
+      <form id="modal-grade-form">
+        <input type="hidden" id="modal-student-id">
+        <div class="form-group">
+          <label>Ocena</label>
+          <select id="modal-grade-val" required>
+            <option value="6">6 - Celujący</option>
+            <option value="5">5 - Bardzo dobry</option>
+            <option value="4">4 - Dobry</option>
+            <option value="3">3 - Dostateczny</option>
+            <option value="2">2 - Dopuszczający</option>
+            <option value="1">1 - Niedostateczny</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Kategoria / Forma aktywności</label>
+          <select id="modal-grade-cat" required>
+            <option value="Sprawdzian">Sprawdzian (Waga 3)</option>
+            <option value="Kartkówka">Kartkówka (Waga 2)</option>
+            <option value="Odpowiedź">Odpowiedź ustna (Waga 2)</option>
+            <option value="Zadanie domowe">Zadanie domowe (Waga 1)</option>
+            <option value="Aktywność">Aktywność (Waga 1)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Opis / Temat</label>
+          <input type="text" id="modal-grade-desc" placeholder="np. Równania kwadratowe" required>
+        </div>
+        <button type="submit" class="btn" style="width: 100%;">Dodaj ocenę</button>
+      </form>
     </div>
   </div>
 
@@ -296,12 +447,20 @@
 
     const daysOfWeek = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek"];
 
+    const categoryWeights = {
+      "Sprawdzian": 3,
+      "Kartkówka": 2,
+      "Odpowiedź": 2,
+      "Zadanie domowe": 1,
+      "Aktywność": 1
+    };
+
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       try {
         await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
       } catch (err) {
-        document.getElementById('auth-error').textContent = 'Blad logowania: ' + err.message;
+        document.getElementById('auth-error').textContent = 'Błąd logowania: ' + err.message;
       }
     });
 
@@ -315,10 +474,10 @@
             currentUserData = { uid: user.uid, ...userDocSnap.data() };
             setupDashboard();
           } else {
-            alert("Brak profilu uzytkownika w bazie Firestore!");
+            alert("Brak profilu użytkownika w bazie Firestore!");
             signOut(auth);
           }
-        } catch (err) { alert("Blad bazy: " + err.message); }
+        } catch (err) { alert("Błąd bazy: " + err.message); }
       } else {
         document.getElementById('auth-section').classList.remove('hidden');
         document.getElementById('app-section').classList.add('hidden');
@@ -338,11 +497,11 @@
       menu.innerHTML = '';
 
       if (roles.includes('admin')) {
-        menu.innerHTML += `<li><a href="#" data-view="admin-setup" class="active">Struktura, Klasy i Numerki</a></li>`;
+        menu.innerHTML += `<li><a href="#" data-view="admin-setup" class="active">Struktura i Klasy</a></li>`;
       }
       if (roles.includes('teacher') || roles.includes('student')) {
         menu.innerHTML += `<li><a href="#" data-view="journal-view" class="active">Dziennik Lekcyjny</a></li>`;
-        menu.innerHTML += `<li><a href="#" data-view="announcements-view">Ogloszenia</a></li>`;
+        menu.innerHTML += `<li><a href="#" data-view="announcements-view">Ogłoszenia</a></li>`;
       }
 
       menu.querySelectorAll('a').forEach(link => {
@@ -359,24 +518,22 @@
 
     async function loadView(viewName) {
       const main = document.getElementById('main-content');
-      main.innerHTML = '<p>Ladowanie...</p>';
+      main.innerHTML = '<p>Ładowanie...</p>';
 
       try {
         if (viewName === 'admin-setup') await renderAdminSetup(main);
         else if (viewName === 'journal-view') await renderJournalView(main);
         else if (viewName === 'announcements-view') await renderAnnouncements(main);
       } catch (err) {
-        main.innerHTML = `<div class="card" style="color:red"><h3>Blad:</h3><p>${err.message}</p></div>`;
+        main.innerHTML = `<div class="card" style="color:red"><h3>Błąd:</h3><p>${err.message}</p></div>`;
       }
     }
 
-    // --- POMOCNICZA FUNKCJA DO POBIERANIA I SORTOWANIA UCZNIOW ---
     async function getSortedStudentsForClass(classId) {
       const studentsSnap = await getDocs(query(collection(db, "users"), where("classId", "==", classId), where("role", "==", "student")));
       let students = [];
       studentsSnap.forEach(s => students.push({ id: s.id, ...s.data() }));
       
-      // Sortowanie po numerze w dzienniku (studentNumber), a jak brak numeru to po nazwisku
       students.sort((a, b) => {
         const numA = Number(a.studentNumber) || 999;
         const numB = Number(b.studentNumber) || 999;
@@ -386,7 +543,6 @@
       return students;
     }
 
-    // --- ADMIN: KONFIGURACJA KLAS, LEKCJI I NUMERATURA UCZNIOW ---
     async function renderAdminSetup(container) {
       const classesSnap = await getDocs(collection(db, "classes"));
       let classOptions = '';
@@ -404,24 +560,24 @@
           <h3>1. Tworzenie nowej klasy</h3>
           <form id="form-add-class" class="form-inline">
             <input type="text" id="class-name" placeholder="Nazwa klasy (np. 1A)" required>
-            <button type="submit" class="btn">Dodaj klase</button>
+            <button type="submit" class="btn">Dodaj klasę</button>
           </form>
         </div>
 
         <div class="card">
-          <h3>2. Przypisanie ucznia do klasy i nadanie numerku w dzienniku</h3>
+          <h3>2. Przypisanie ucznia do klasy i nadanie numerku</h3>
           <form id="form-assign-student" class="form-inline">
             <select id="as-student" required><option value="">Wybierz ucznia...</option>${studentOptions}</select>
-            <select id="as-class" required><option value="">Wybierz klase...</option>${classOptions}</select>
-            <input type="number" id="as-number" placeholder="Nr w dzienniku (np. 1)" min="1" max="50" required style="width: 150px;">
+            <select id="as-class" required><option value="">Wybierz klasę...</option>${classOptions}</select>
+            <input type="number" id="as-number" placeholder="Nr w dzienniku" min="1" max="50" required style="width: 150px;">
             <button type="submit" class="btn">Zapisz przypisanie</button>
           </form>
         </div>
 
         <div class="card">
-          <h3>3. Dodawanie lekcji do planu zajec</h3>
+          <h3>3. Dodawanie lekcji do planu zajęć</h3>
           <form id="form-add-timetable" class="form-inline">
-            <select id="tt-class" required><option value="">Wybierz klase...</option>${classOptions}</select>
+            <select id="tt-class" required><option value="">Wybierz klasę...</option>${classOptions}</select>
             <select id="tt-day" required>
               ${daysOfWeek.map(d => `<option value="${d}">${d}</option>`).join('')}
             </select>
@@ -435,7 +591,7 @@
       document.getElementById('form-add-class').addEventListener('submit', async (e) => {
         e.preventDefault();
         await addDoc(collection(db, "classes"), { name: document.getElementById('class-name').value, schoolId: currentUserData.schoolId || "school1" });
-        alert('Klasa zostala dodana!');
+        alert('Klasa została dodana!');
         loadView('admin-setup');
       });
 
@@ -450,7 +606,7 @@
           studentNumber: studentNum
         }, { merge: true });
 
-        alert('Uczen przypisany do klasy z numerkiem ' + studentNum + '!');
+        alert('Uczeń został przypisany!');
       });
 
       document.getElementById('form-add-timetable').addEventListener('submit', async (e) => {
@@ -465,7 +621,6 @@
       });
     }
 
-    // --- WIDOK DZIENNIKA LEKCYJNEGO ---
     async function renderJournalView(container) {
       let classes = [];
       if (currentUserData.role.includes('student')) {
@@ -480,7 +635,7 @@
       if (!currentUserData.role.includes('student')) {
         classSelectHtml = `
           <div class="form-group" style="max-width: 300px;">
-            <label>Wybierz klase:</label>
+            <label>Wybierz klasę:</label>
             <select id="select-class">
               ${classes.map(c => `<option value="${c.id}" ${c.id === selectedClassId ? 'selected' : ''}>${c.name}</option>`).join('')}
             </select>
@@ -526,7 +681,7 @@
 
     async function renderLessonsList() {
       const container = document.getElementById('lessons-container');
-      container.innerHTML = '<p>Ladowanie planu lekcji...</p>';
+      container.innerHTML = '<p>Ładowanie planu...</p>';
 
       if (!selectedClassId) {
         container.innerHTML = '<div class="card"><p>Brak przypisanej klasy.</p></div>';
@@ -545,7 +700,7 @@
       lessons.sort((a, b) => a.lessonNumber - b.lessonNumber);
 
       if (lessons.length === 0) {
-        container.innerHTML = `<div class="card"><p>Brak lekcji w planie na dzien: ${selectedDay}</p></div>`;
+        container.innerHTML = `<div class="card"><p>Brak lekcji w planie na dzień: ${selectedDay}</p></div>`;
         return;
       }
 
@@ -556,7 +711,7 @@
             <div>
               <strong>Lekcja ${l.lessonNumber}: ${l.subject}</strong>
             </div>
-            <button class="btn" style="width: auto;">Otworz dziennik lekcji</button>
+            <button class="btn" style="width: auto;">Otwórz dziennik lekcji</button>
           </div>
         `;
       });
@@ -577,10 +732,10 @@
 
       container.innerHTML = `
         <div class="card" style="border-top: 4px solid var(--role-current);">
-          <h3>Szczegoly Lekcji: ${lesson.subject} (${selectedDay})</h3>
+          <h3>Szczegóły Lekcji: ${lesson.subject} (${selectedDay})</h3>
           <div class="lesson-tabs">
-            <button class="tab-btn active" data-tab="tab-attendance">Frekwencja</button>
-            <button class="tab-btn" data-tab="tab-grades">Oceny</button>
+            <button class="tab-btn active" data-tab="tab-grades">Oceny</button>
+            <button class="tab-btn" data-tab="tab-attendance">Frekwencja</button>
             <button class="tab-btn" data-tab="tab-remarks">Uwagi</button>
             <button class="tab-btn" data-tab="tab-schedule">Terminarz</button>
           </div>
@@ -596,18 +751,137 @@
         });
       });
 
-      loadTabContent('tab-attendance', lesson, isTeacher);
+      loadTabContent('tab-grades', lesson, isTeacher);
     }
 
     async function loadTabContent(tabName, lesson, isTeacher) {
       const tabContainer = document.getElementById('tab-content');
-      tabContainer.innerHTML = '<p>Ladowanie modułu...</p>';
+      tabContainer.innerHTML = '<p>Ładowanie modułu...</p>';
 
-      // --- TAB 1: FREKWENCJA (SORTOWANIE PO NUMERKU) ---
-      if (tabName === 'tab-attendance') {
+      // --- TAB 1: PROFESJONALNA TABELA OCEN ---
+      if (tabName === 'tab-grades') {
+        const sortedStudents = await getSortedStudentsForClass(selectedClassId);
+        
+        // Pobranie wszystkich ocen z tego przedmiotu dla tej klasy
+        const gradesQuery = query(collection(db, "grades"), where("subject", "==", lesson.subject));
+        const gradesSnap = await getDocs(gradesQuery);
+        
+        let gradesByStudent = {};
+        gradesSnap.forEach(gDoc => {
+          const g = gDoc.data();
+          if (!gradesByStudent[g.studentId]) gradesByStudent[g.studentId] = [];
+          gradesByStudent[g.studentId].push(g);
+        });
+
+        if (isTeacher) {
+          let tableHtml = `
+            <div class="grades-table-container">
+              <table class="grades-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;">LP</th>
+                    <th style="width: 200px;">Uczeń</th>
+                    <th>Oceny Cząstkowe</th>
+                    <th style="width: 80px; text-align: center;">Średnia</th>
+                    <th style="width: 100px; text-align: right;">Akcje</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+
+          sortedStudents.forEach(s => {
+            const studentGrades = gradesByStudent[s.id] || [];
+            
+            // Obliczanie średniej ważonej
+            let totalWeighted = 0;
+            let totalWeights = 0;
+
+            let gradesBadgesHtml = studentGrades.map(g => {
+              const weight = categoryWeights[g.category] || 1;
+              const val = Number(g.value);
+              totalWeighted += val * weight;
+              totalWeights += weight;
+
+              const catInitial = (g.category || 'O')[0].toUpperCase();
+              return `
+                <div class="grade-badge grade-${val}" title="${g.category || ''} - ${g.description || ''} (Waga: ${weight}, Data: ${g.date || ''})">
+                  ${val}
+                  <span class="grade-category">${catInitial}</span>
+                </div>
+              `;
+            }).join('');
+
+            const avg = totalWeights > 0 ? (totalWeighted / totalWeights).toFixed(2) : '-';
+
+            tableHtml += `
+              <tr>
+                <td><strong>${s.studentNumber || '-'}</strong></td>
+                <td><strong>${s.surname || ''} ${s.name || ''}</strong></td>
+                <td>
+                  <div class="grades-cell-container">
+                    ${gradesBadgesHtml || '<span style="color:#94a3b8; font-size:0.85rem;">Brak ocen</span>'}
+                  </div>
+                </td>
+                <td style="text-align: center;">
+                  <span class="average-badge">${avg}</span>
+                </td>
+                <td style="text-align: right;">
+                  <button class="btn btn-sm btn-add-grade" data-student-id="${s.id}" data-student-name="${s.surname || ''} ${s.name || ''}">+ Ocena</button>
+                </td>
+              </tr>
+            `;
+          });
+
+          tableHtml += `</tbody></table></div>`;
+          tabContainer.innerHTML = tableHtml;
+
+          // Podpięcie przycisków do otwierania modala
+          tabContainer.querySelectorAll('.btn-add-grade').forEach(btn => {
+            btn.addEventListener('click', () => {
+              document.getElementById('modal-student-id').value = btn.dataset.studentId;
+              document.getElementById('modal-student-name').textContent = `Dodaj ocenę dla: ${btn.dataset.studentName}`;
+              document.getElementById('grade-modal').classList.remove('hidden');
+            });
+          });
+
+        } else {
+          // WIDOK UCZNIA
+          const studentGrades = gradesByStudent[currentUserData.uid] || [];
+          let totalWeighted = 0;
+          let totalWeights = 0;
+
+          let gradesBadgesHtml = studentGrades.map(g => {
+            const weight = categoryWeights[g.category] || 1;
+            const val = Number(g.value);
+            totalWeighted += val * weight;
+            totalWeights += weight;
+
+            return `
+              <div class="grade-badge grade-${val}" title="${g.category || ''} - ${g.description || ''} (Waga: ${weight}, Data: ${g.date || ''})">
+                ${val}
+              </div>
+            `;
+          }).join('');
+
+          const avg = totalWeights > 0 ? (totalWeighted / totalWeights).toFixed(2) : '-';
+
+          tabContainer.innerHTML = `
+            <div class="card">
+              <h4>Moje oceny z przedmiotu: ${lesson.subject}</h4>
+              <p style="margin-bottom: 15px;">Średnia ważona: <span class="average-badge">${avg}</span></p>
+              <div class="grades-cell-container">
+                ${gradesBadgesHtml || '<p>Brak ocen.</p>'}
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // --- TAB 2: FREKWENCJA ---
+      else if (tabName === 'tab-attendance') {
         if (isTeacher) {
           const sortedStudents = await getSortedStudentsForClass(selectedClassId);
-          let html = `<h4>Sprawdzanie obecnosci</h4><table><thead><tr><th>Nr</th><th>Uczen</th><th>Status</th></tr></thead><tbody>`;
+          let html = `<h4>Sprawdzanie obecności</h4><table class="grades-table"><thead><tr><th>Nr</th><th>Uczeń</th><th>Status</th></tr></thead><tbody>`;
           sortedStudents.forEach(s => {
             html += `
               <tr>
@@ -617,13 +891,13 @@
                   <select class="att-select" data-student="${s.id}">
                     <option value="Obecny">Obecny</option>
                     <option value="Nieobecny">Nieobecny</option>
-                    <option value="Spozniony">Spozniony</option>
+                    <option value="Spóźniony">Spóźniony</option>
                   </select>
                 </td>
               </tr>
             `;
           });
-          html += `</tbody></table><button id="save-att" class="btn" style="margin-top:15px;">Zapisz frekwencje</button>`;
+          html += `</tbody></table><button id="save-att" class="btn" style="margin-top:15px;">Zapisz frekwencję</button>`;
           tabContainer.innerHTML = html;
 
           document.getElementById('save-att')?.addEventListener('click', async () => {
@@ -641,49 +915,8 @@
           });
         } else {
           const attSnap = await getDocs(query(collection(db, "attendance"), where("studentId", "==", currentUserData.uid), where("lessonId", "==", lesson.id)));
-          let html = `<h4>Moja frekwencja na tej lekcji</h4><table><thead><tr><th>Data</th><th>Status</th></tr></thead><tbody>`;
+          let html = `<h4>Moja frekwencja</h4><table class="grades-table"><thead><tr><th>Data</th><th>Status</th></tr></thead><tbody>`;
           attSnap.forEach(a => { html += `<tr><td>${a.data().date}</td><td>${a.data().status}</td></tr>`; });
-          html += `</tbody></table>`;
-          tabContainer.innerHTML = html;
-        }
-      }
-
-      // --- TAB 2: OCENY (LISTA DRAPDOWN SORTOWANA PO NUMERKU) ---
-      else if (tabName === 'tab-grades') {
-        if (isTeacher) {
-          const sortedStudents = await getSortedStudentsForClass(selectedClassId);
-          let studentOpts = '';
-          sortedStudents.forEach(s => {
-            studentOpts += `<option value="${s.id}">${s.studentNumber ? s.studentNumber + '.' : ''} ${s.surname || ''} ${s.name || ''}</option>`;
-          });
-
-          tabContainer.innerHTML = `
-            <form id="form-add-grade" class="form-inline">
-              <select id="g-student" required>${studentOpts}</select>
-              <select id="g-val" required>
-                <option value="6">6</option><option value="5">5</option><option value="4">4</option>
-                <option value="3">3</option><option value="2">2</option><option value="1">1</option>
-              </select>
-              <input type="text" id="g-desc" placeholder="Krotki opis" required>
-              <button type="submit" class="btn">Wstaw ocene</button>
-            </form>
-          `;
-
-          document.getElementById('form-add-grade').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await addDoc(collection(db, "grades"), {
-              studentId: document.getElementById('g-student').value,
-              subject: lesson.subject,
-              value: Number(document.getElementById('g-val').value),
-              description: document.getElementById('g-desc').value,
-              date: new Date().toISOString().split('T')[0]
-            });
-            alert('Ocena wstawiona!');
-          });
-        } else {
-          const gradesSnap = await getDocs(query(collection(db, "grades"), where("studentId", "==", currentUserData.uid), where("subject", "==", lesson.subject)));
-          let html = `<h4>Moje oceny z: ${lesson.subject}</h4><table><thead><tr><th>Ocena</th><th>Opis</th><th>Data</th></tr></thead><tbody>`;
-          gradesSnap.forEach(g => { html += `<tr><td><strong>${g.data().value}</strong></td><td>${g.data().description}</td><td>${g.data().date}</td></tr>`; });
           html += `</tbody></table>`;
           tabContainer.innerHTML = html;
         }
@@ -700,9 +933,9 @@
 
           tabContainer.innerHTML = `
             <form id="form-add-remark">
-              <div class="form-group"><label>Uczen</label><select id="r-student">${studentOpts}</select></div>
-              <div class="form-group"><label>Tresc uwagi</label><textarea id="r-text" required></textarea></div>
-              <button type="submit" class="btn">Wpisz uwage</button>
+              <div class="form-group"><label>Uczeń</label><select id="r-student">${studentOpts}</select></div>
+              <div class="form-group"><label>Treść uwagi</label><textarea id="r-text" required></textarea></div>
+              <button type="submit" class="btn">Wpisz uwagę</button>
             </form>
           `;
 
@@ -729,9 +962,9 @@
         if (isTeacher) {
           tabContainer.innerHTML = `
             <form id="form-add-event" class="form-inline">
-              <input type="text" id="ev-title" placeholder="Tytul (np. Sprawdzian)" required>
+              <input type="text" id="ev-title" placeholder="Tytuł (np. Sprawdzian)" required>
               <input type="date" id="ev-date" required>
-              <button type="submit" class="btn">Dodaj wpis do terminarza</button>
+              <button type="submit" class="btn">Dodaj wpis</button>
             </form>
           `;
 
@@ -747,7 +980,7 @@
           });
         } else {
           const evSnap = await getDocs(query(collection(db, "schedule"), where("classId", "==", selectedClassId), where("subject", "==", lesson.subject)));
-          let html = `<h4>Wpisane sprawdziany i zadania</h4><table><thead><tr><th>Tytul</th><th>Data</th></tr></thead><tbody>`;
+          let html = `<h4>Terminarz</h4><table class="grades-table"><thead><tr><th>Tytuł</th><th>Data</th></tr></thead><tbody>`;
           evSnap.forEach(ev => { html += `<tr><td>${ev.data().title}</td><td>${ev.data().eventDate}</td></tr>`; });
           html += `</tbody></table>`;
           tabContainer.innerHTML = html;
@@ -757,13 +990,39 @@
 
     async function renderAnnouncements(container) {
       const annSnap = await getDocs(collection(db, "announcements"));
-      let html = `<div class="card"><h3>Ogloszenia Szkolne</h3>`;
+      let html = `<div class="card"><h3>Ogłoszenia Szkolne</h3>`;
       annSnap.forEach(a => {
         html += `<div style="border-bottom: 1px solid #ccc; padding: 10px 0;"><h4>${a.data().title}</h4><p>${a.data().text}</p></div>`;
       });
       html += `</div>`;
       container.innerHTML = html;
     }
+
+    // OBSŁUGA MODALA DLA OCEN
+    document.getElementById('btn-close-modal').addEventListener('click', () => {
+      document.getElementById('grade-modal').classList.add('hidden');
+    });
+
+    document.getElementById('modal-grade-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const studentId = document.getElementById('modal-student-id').value;
+      const val = Number(document.getElementById('modal-grade-val').value);
+      const cat = document.getElementById('modal-grade-cat').value;
+      const desc = document.getElementById('modal-grade-desc').value;
+
+      await addDoc(collection(db, "grades"), {
+        studentId: studentId,
+        subject: selectedLesson.subject,
+        value: val,
+        category: cat,
+        description: desc,
+        date: new Date().toISOString().split('T')[0]
+      });
+
+      document.getElementById('grade-modal').classList.add('hidden');
+      document.getElementById('modal-grade-desc').value = '';
+      loadTabContent('tab-grades', selectedLesson, true);
+    });
   </script>
 </body>
 </html>
