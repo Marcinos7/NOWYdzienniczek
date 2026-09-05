@@ -64,7 +64,7 @@
       outline: none;
     }
 
-    .form-group input:focus, .form-group select:focus {
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
       border-color: var(--role-current);
     }
 
@@ -80,6 +80,8 @@
     }
 
     .btn:hover { opacity: 0.95; }
+    .btn-danger { background-color: #dc2626; }
+    .btn-secondary { background-color: #64748b; }
     .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
 
     .app-header {
@@ -213,7 +215,7 @@
       color: var(--role-current);
     }
 
-    /* STYLIZACJA PROFESJONALNEJ TABELI OCEN */
+    /* STYLIZACJA TABELI OCEN I FREKWENCJI */
     .grades-table-container {
       overflow-x: auto;
       border: 1px solid var(--border-color);
@@ -268,9 +270,13 @@
       cursor: pointer;
       position: relative;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.1s;
     }
 
-    /* KOLORYSTYKA OCEN NIERUCHOMYCH */
+    .grade-badge:hover {
+      transform: scale(1.1);
+    }
+
     .grade-6 { background-color: #7c3aed; }
     .grade-5 { background-color: #2563eb; }
     .grade-4 { background-color: #059669; }
@@ -301,6 +307,68 @@
       color: #334155;
     }
 
+    /* KALENDARZ MIESIĘCZNY (TERMINARZ) */
+    .month-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+
+    .month-day-head {
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.8rem;
+      color: #64748b;
+      padding: 6px;
+    }
+
+    .month-day-cell {
+      min-height: 90px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: #fff;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .month-day-cell.other-month {
+      background: #f8fafc;
+      opacity: 0.5;
+    }
+
+    .month-day-number {
+      font-weight: bold;
+      font-size: 0.8rem;
+      color: #475569;
+      margin-bottom: 2px;
+    }
+
+    .schedule-event-pill {
+      font-size: 0.72rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .event-type-Sprawdzian { background-color: #dc2626; }
+    .event-type-Kartkówka { background-color: #ea580c; }
+    .event-type-Praca-lekcyjna { background-color: #2563eb; }
+    .event-type-Odpowiedź-ustna { background-color: #d97706; }
+    .event-type-Zadanie-domowe { background-color: #059669; }
+
     /* MODAL */
     .modal-overlay {
       position: fixed;
@@ -317,7 +385,7 @@
       border-radius: 10px;
       padding: 24px;
       width: 100%;
-      max-width: 450px;
+      max-width: 480px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     }
 
@@ -334,6 +402,12 @@
       font-size: 1.5rem;
       cursor: pointer;
       color: #64748b;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
     }
 
     .hidden { display: none !important; }
@@ -382,18 +456,18 @@
     </div>
   </div>
 
-  <!-- MODAL DO WSTAWIANIA OCENY -->
-  <div id="grade-modal" class="modal-overlay hidden">
+  <!-- MODAL: EDYCJA OCENY -->
+  <div id="edit-grade-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 id="modal-student-name">Dodaj ocenę</h3>
-        <button class="modal-close" id="btn-close-modal">&times;</button>
+        <h3>Edycja oceny</h3>
+        <button class="modal-close" class="btn-close-modal" data-modal="edit-grade-modal">&times;</button>
       </div>
-      <form id="modal-grade-form">
-        <input type="hidden" id="modal-student-id">
+      <form id="edit-grade-form">
+        <input type="hidden" id="eg-id">
         <div class="form-group">
           <label>Ocena</label>
-          <select id="modal-grade-val" required>
+          <select id="eg-val" required>
             <option value="6">6 - Celujący</option>
             <option value="5">5 - Bardzo dobry</option>
             <option value="4">4 - Dobry</option>
@@ -403,8 +477,8 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Kategoria / Forma aktywności</label>
-          <select id="modal-grade-cat" required>
+          <label>Kategoria</label>
+          <select id="eg-cat" required>
             <option value="Sprawdzian">Sprawdzian (Waga 3)</option>
             <option value="Kartkówka">Kartkówka (Waga 2)</option>
             <option value="Odpowiedź">Odpowiedź ustna (Waga 2)</option>
@@ -414,9 +488,51 @@
         </div>
         <div class="form-group">
           <label>Opis / Temat</label>
-          <input type="text" id="modal-grade-desc" placeholder="np. Równania kwadratowe" required>
+          <input type="text" id="eg-desc" required>
         </div>
-        <button type="submit" class="btn" style="width: 100%;">Dodaj ocenę</button>
+        <div class="modal-actions">
+          <button type="submit" class="btn" style="flex: 1;">Zapisz zmiany</button>
+          <button type="button" id="btn-delete-grade" class="btn btn-danger">Usuń ocenę</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TERMINARZ (DODAWANIE / EDYCJA) -->
+  <div id="schedule-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="schedule-modal-title">Wpis w terminarzu</h3>
+        <button class="modal-close" class="btn-close-modal" data-modal="schedule-modal">&times;</button>
+      </div>
+      <form id="schedule-modal-form">
+        <input type="hidden" id="sm-id">
+        <div class="form-group">
+          <label>Przedmiot</label>
+          <select id="sm-subject" required></select>
+        </div>
+        <div class="form-group">
+          <label>Typ wpisu</label>
+          <select id="sm-type" required>
+            <option value="Sprawdzian">Sprawdzian</option>
+            <option value="Kartkówka">Kartkówka</option>
+            <option value="Praca lekcyjna">Praca lekcyjna</option>
+            <option value="Odpowiedź ustna">Odpowiedź ustna</option>
+            <option value="Zadanie domowe">Zadanie domowe</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Opis / Zakres materiału</label>
+          <textarea id="sm-description" rows="3" required placeholder="Wpisz szczegóły zadania lub sprawdzianu..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="sm-date" required>
+        </div>
+        <div class="modal-actions" id="sm-actions">
+          <button type="submit" class="btn" style="flex: 1;">Zapisz</button>
+          <button type="button" id="btn-delete-schedule" class="btn btn-danger hidden">Usuń wpis</button>
+        </div>
       </form>
     </div>
   </div>
@@ -424,7 +540,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { initializeFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCdUEJhYVoWFKeAFo0EmvyR3hqTmGz3cBw",
@@ -444,6 +560,7 @@
     let selectedClassId = null;
     let selectedDay = "Poniedzialek";
     let selectedLesson = null;
+    let calendarCurrentDate = new Date();
 
     const daysOfWeek = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek"];
 
@@ -454,6 +571,15 @@
       "Zadanie domowe": 1,
       "Aktywność": 1
     };
+
+    const remarkCategories = [
+      "wypełnianie obowiązków ucznia",
+      "zaangażowanie społeczne",
+      "kultura osobista",
+      "dbałość o bezpieczeństwo i zdrowie",
+      "szacunek do innych osób",
+      "zachowanie na lekcji"
+    ];
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -758,41 +884,60 @@
       const tabContainer = document.getElementById('tab-content');
       tabContainer.innerHTML = '<p>Ładowanie modułu...</p>';
 
-      // --- TAB 1: PROFESJONALNA TABELA OCEN ---
+      // --- TAB 1: OCENY (MASOWE WPISTWANIE DLA KLASY + EDYCJA) ---
       if (tabName === 'tab-grades') {
         const sortedStudents = await getSortedStudentsForClass(selectedClassId);
         
-        // Pobranie wszystkich ocen z tego przedmiotu dla tej klasy
         const gradesQuery = query(collection(db, "grades"), where("subject", "==", lesson.subject));
         const gradesSnap = await getDocs(gradesQuery);
         
         let gradesByStudent = {};
         gradesSnap.forEach(gDoc => {
-          const g = gDoc.data();
+          const g = { id: gDoc.id, ...gDoc.data() };
           if (!gradesByStudent[g.studentId]) gradesByStudent[g.studentId] = [];
           gradesByStudent[g.studentId].push(g);
         });
 
         if (isTeacher) {
-          let tableHtml = `
-            <div class="grades-table-container">
-              <table class="grades-table">
-                <thead>
-                  <tr>
-                    <th style="width: 40px;">LP</th>
-                    <th style="width: 200px;">Uczeń</th>
-                    <th>Oceny Cząstkowe</th>
-                    <th style="width: 80px; text-align: center;">Średnia</th>
-                    <th style="width: 100px; text-align: right;">Akcje</th>
-                  </tr>
-                </thead>
-                <tbody>
+          let html = `
+            <div style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+              <h4 style="margin-bottom: 10px;">Masowe wpisywanie ocen dla klasy</h4>
+              <div class="form-inline">
+                <div style="flex: 1; min-width: 150px;">
+                  <label style="font-size:0.8rem; font-weight:bold;">Kategoria</label>
+                  <select id="bulk-category">
+                    <option value="Sprawdzian">Sprawdzian (Waga 3)</option>
+                    <option value="Kartkówka">Kartkówka (Waga 2)</option>
+                    <option value="Odpowiedź">Odpowiedź ustna (Waga 2)</option>
+                    <option value="Zadanie domowe">Zadanie domowe (Waga 1)</option>
+                    <option value="Aktywność">Aktywność (Waga 1)</option>
+                  </select>
+                </div>
+                <div style="flex: 2; min-width: 200px;">
+                  <label style="font-size:0.8rem; font-weight:bold;">Opis / Temat</label>
+                  <input type="text" id="bulk-desc" placeholder="np. Mnożenie macierzy" required>
+                </div>
+              </div>
+            </div>
+
+            <form id="form-bulk-grades">
+              <div class="grades-table-container">
+                <table class="grades-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 40px;">LP</th>
+                      <th style="width: 220px;">Uczeń</th>
+                      <th>Dotychczasowe Oceny (kliknij aby edytować)</th>
+                      <th style="width: 80px; text-align: center;">Średnia</th>
+                      <th style="width: 110px;">Nowa ocena</th>
+                    </tr>
+                  </thead>
+                  <tbody>
           `;
 
           sortedStudents.forEach(s => {
             const studentGrades = gradesByStudent[s.id] || [];
             
-            // Obliczanie średniej ważonej
             let totalWeighted = 0;
             let totalWeights = 0;
 
@@ -804,7 +949,12 @@
 
               const catInitial = (g.category || 'O')[0].toUpperCase();
               return `
-                <div class="grade-badge grade-${val}" title="${g.category || ''} - ${g.description || ''} (Waga: ${weight}, Data: ${g.date || ''})">
+                <div class="grade-badge grade-${val} grade-clickable" 
+                     data-grade-id="${g.id}" 
+                     data-val="${val}" 
+                     data-cat="${g.category}" 
+                     data-desc="${g.description || ''}"
+                     title="${g.category || ''} - ${g.description || ''} (Waga: ${weight}, Data: ${g.date || ''})">
                   ${val}
                   <span class="grade-category">${catInitial}</span>
                 </div>
@@ -813,7 +963,7 @@
 
             const avg = totalWeights > 0 ? (totalWeighted / totalWeights).toFixed(2) : '-';
 
-            tableHtml += `
+            html += `
               <tr>
                 <td><strong>${s.studentNumber || '-'}</strong></td>
                 <td><strong>${s.surname || ''} ${s.name || ''}</strong></td>
@@ -825,22 +975,70 @@
                 <td style="text-align: center;">
                   <span class="average-badge">${avg}</span>
                 </td>
-                <td style="text-align: right;">
-                  <button class="btn btn-sm btn-add-grade" data-student-id="${s.id}" data-student-name="${s.surname || ''} ${s.name || ''}">+ Ocena</button>
+                <td>
+                  <select class="bulk-grade-input" data-student-id="${s.id}" style="padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                    <option value="">-</option>
+                    <option value="6">6</option><option value="5">5</option><option value="4">4</option>
+                    <option value="3">3</option><option value="2">2</option><option value="1">1</option>
+                  </select>
                 </td>
               </tr>
             `;
           });
 
-          tableHtml += `</tbody></table></div>`;
-          tabContainer.innerHTML = tableHtml;
+          html += `
+                  </tbody>
+                </table>
+              </div>
+              <button type="submit" class="btn" style="margin-top: 15px; width: 100%;">Zapisz oceny dla klasy</button>
+            </form>
+          `;
+          tabContainer.innerHTML = html;
 
-          // Podpięcie przycisków do otwierania modala
-          tabContainer.querySelectorAll('.btn-add-grade').forEach(btn => {
-            btn.addEventListener('click', () => {
-              document.getElementById('modal-student-id').value = btn.dataset.studentId;
-              document.getElementById('modal-student-name').textContent = `Dodaj ocenę dla: ${btn.dataset.studentName}`;
-              document.getElementById('grade-modal').classList.remove('hidden');
+          // Obsługa zapisywania masowego
+          document.getElementById('form-bulk-grades').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const category = document.getElementById('bulk-category').value;
+            const description = document.getElementById('bulk-desc').value;
+
+            if (!description.trim()) {
+              alert('Proszę podać opis / temat dla wpisywanych ocen.');
+              return;
+            }
+
+            const inputs = tabContainer.querySelectorAll('.bulk-grade-input');
+            let addedCount = 0;
+
+            for (let input of inputs) {
+              if (input.value) {
+                await addDoc(collection(db, "grades"), {
+                  studentId: input.dataset.studentId,
+                  subject: lesson.subject,
+                  value: Number(input.value),
+                  category: category,
+                  description: description,
+                  date: new Date().toISOString().split('T')[0]
+                });
+                addedCount++;
+              }
+            }
+
+            if (addedCount > 0) {
+              alert(`Pomyślnie dodano ${addedCount} ocen!`);
+              loadTabContent('tab-grades', lesson, true);
+            } else {
+              alert('Nie wybrano żadnej oceny do wpisania.');
+            }
+          });
+
+          // Obsługa kliknięcia w ocenę (edycja)
+          tabContainer.querySelectorAll('.grade-clickable').forEach(badge => {
+            badge.addEventListener('click', () => {
+              document.getElementById('eg-id').value = badge.dataset.gradeId;
+              document.getElementById('eg-val').value = badge.dataset.val;
+              document.getElementById('eg-cat').value = badge.dataset.cat;
+              document.getElementById('eg-desc').value = badge.dataset.desc;
+              document.getElementById('edit-grade-modal').classList.remove('hidden');
             });
           });
 
@@ -922,19 +1120,27 @@
         }
       }
 
-      // --- TAB 3: UWAGI ---
+      // --- TAB 3: UWAGI (Z KATEGORIAMI) ---
       else if (tabName === 'tab-remarks') {
         if (isTeacher) {
           const sortedStudents = await getSortedStudentsForClass(selectedClassId);
-          let studentOpts = '';
-          sortedStudents.forEach(s => {
-            studentOpts += `<option value="${s.id}">${s.studentNumber ? s.studentNumber + '.' : ''} ${s.surname || ''} ${s.name || ''}</option>`;
-          });
+          let studentOpts = sortedStudents.map(s => `<option value="${s.id}">${s.studentNumber ? s.studentNumber + '.' : ''} ${s.surname || ''} ${s.name || ''}</option>`).join('');
+          let categoryOpts = remarkCategories.map(c => `<option value="${c}">${c}</option>`).join('');
 
           tabContainer.innerHTML = `
             <form id="form-add-remark">
-              <div class="form-group"><label>Uczeń</label><select id="r-student">${studentOpts}</select></div>
-              <div class="form-group"><label>Treść uwagi</label><textarea id="r-text" required></textarea></div>
+              <div class="form-group">
+                <label>Uczeń</label>
+                <select id="r-student">${studentOpts}</select>
+              </div>
+              <div class="form-group">
+                <label>Kategoria uwagi</label>
+                <select id="r-category">${categoryOpts}</select>
+              </div>
+              <div class="form-group">
+                <label>Treść uwagi</label>
+                <textarea id="r-text" rows="3" required placeholder="Opisz sytuację..."></textarea>
+              </div>
               <button type="submit" class="btn">Wpisz uwagę</button>
             </form>
           `;
@@ -943,49 +1149,205 @@
             e.preventDefault();
             await addDoc(collection(db, "remarks"), {
               studentId: document.getElementById('r-student').value,
+              category: document.getElementById('r-category').value,
               text: document.getElementById('r-text').value,
-              teacherName: `${currentUserData.name} ${currentUserData.surname}`,
+              teacherName: `${currentUserData.name || ''} ${currentUserData.surname || ''}`,
               date: new Date().toISOString().split('T')[0]
             });
-            alert('Uwaga dodana!');
+            alert('Uwaga została wpisana!');
+            document.getElementById('r-text').value = '';
           });
         } else {
           const remarksSnap = await getDocs(query(collection(db, "remarks"), where("studentId", "==", currentUserData.uid)));
           let html = `<h4>Moje uwagi</h4>`;
-          remarksSnap.forEach(r => { html += `<p><strong>${r.data().date}:</strong> ${r.data().text}</p>`; });
-          tabContainer.innerHTML = html;
-        }
-      }
-
-      // --- TAB 4: TERMINARZ ---
-      else if (tabName === 'tab-schedule') {
-        if (isTeacher) {
-          tabContainer.innerHTML = `
-            <form id="form-add-event" class="form-inline">
-              <input type="text" id="ev-title" placeholder="Tytuł (np. Sprawdzian)" required>
-              <input type="date" id="ev-date" required>
-              <button type="submit" class="btn">Dodaj wpis</button>
-            </form>
-          `;
-
-          document.getElementById('form-add-event').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await addDoc(collection(db, "schedule"), {
-              classId: selectedClassId,
-              subject: lesson.subject,
-              title: document.getElementById('ev-title').value,
-              eventDate: document.getElementById('ev-date').value
+          if (remarksSnap.empty) {
+            html += `<p style="color:#64748b; margin-top:10px;">Brak uwag w dzienniku.</p>`;
+          } else {
+            remarksSnap.forEach(r => {
+              const d = r.data();
+              html += `
+                <div style="border-left: 3px solid var(--role-current); padding-left: 10px; margin-bottom: 12px; background: #f8fafc; padding: 10px; border-radius: 4px;">
+                  <span style="font-size: 0.75rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${d.category || 'Ogólna'}</span>
+                  <p style="margin-top: 5px;">${d.text}</p>
+                  <small style="color: #64748b;">${d.date} | Wpisał: ${d.teacherName || 'Nauczyciel'}</small>
+                </div>
+              `;
             });
-            alert('Termin zapisany!');
-          });
-        } else {
-          const evSnap = await getDocs(query(collection(db, "schedule"), where("classId", "==", selectedClassId), where("subject", "==", lesson.subject)));
-          let html = `<h4>Terminarz</h4><table class="grades-table"><thead><tr><th>Tytuł</th><th>Data</th></tr></thead><tbody>`;
-          evSnap.forEach(ev => { html += `<tr><td>${ev.data().title}</td><td>${ev.data().eventDate}</td></tr>`; });
-          html += `</tbody></table>`;
+          }
           tabContainer.innerHTML = html;
         }
       }
+
+      // --- TAB 4: MIESIĘCZNY TERMINARZ KALENDARZOWY ---
+      else if (tabName === 'tab-schedule') {
+        renderMonthlySchedule(tabContainer, isTeacher);
+      }
+    }
+
+    // --- LOGIKA MIESIĘCZNEGO KALENDARZA TERMINARZA ---
+    async function renderMonthlySchedule(container, isTeacher) {
+      container.innerHTML = '<p>Ładowanie terminarza...</p>';
+
+      const year = calendarCurrentDate.getFullYear();
+      const month = calendarCurrentDate.getMonth();
+
+      // Pobranie unikalnych przedmiotów z planu zajęć danej klasy
+      const ttSnap = await getDocs(query(collection(db, "timetable"), where("classId", "==", selectedClassId)));
+      let subjectsList = new Set();
+      ttSnap.forEach(doc => subjectsList.add(doc.data().subject));
+      const subjectsArray = Array.from(subjectsList);
+
+      // Pobranie wpisów w terminarzu dla klasy
+      const scheduleSnap = await getDocs(query(collection(db, "schedule"), where("classId", "==", selectedClassId)));
+      let eventsByDate = {};
+
+      scheduleSnap.forEach(sDoc => {
+        const ev = { id: sDoc.id, ...sDoc.data() };
+        if (!eventsByDate[ev.eventDate]) eventsByDate[ev.eventDate] = [];
+        eventsByDate[ev.eventDate].push(ev);
+      });
+
+      const monthNames = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"];
+
+      let html = `
+        <div class="month-header">
+          <h4>${monthNames[month]} ${year}</h4>
+          <div>
+            <button id="btn-prev-month" class="btn btn-secondary btn-sm">&lt; Poprzedni</button>
+            <button id="btn-today-month" class="btn btn-secondary btn-sm">Dziś</button>
+            <button id="btn-next-month" class="btn btn-secondary btn-sm">Następny &gt;</button>
+            ${isTeacher ? '<button id="btn-add-schedule-event" class="btn btn-sm" style="margin-left: 10px;">+ Dodaj wpis</button>' : ''}
+          </div>
+        </div>
+
+        <div class="month-grid">
+          <div class="month-day-head">Pon</div>
+          <div class="month-day-head">Wt</div>
+          <div class="month-day-head">Śr</div>
+          <div class="month-day-head">Czw</div>
+          <div class="month-day-head">Pt</div>
+          <div class="month-day-head">Sob</div>
+          <div class="month-day-head">Niedz</div>
+      `;
+
+      const firstDayOfMonth = new Date(year, month, 1);
+      let startingDay = firstDayOfMonth.getDay() - 1; 
+      if (startingDay === -1) startingDay = 6; 
+
+      const lastDateOfMonth = new Date(year, month + 1, 0).getDate();
+      const prevMonthLastDate = new Date(year, month, 0).getDate();
+
+      // Dni poprzedniego miesiąca
+      for (let i = startingDay; i > 0; i--) {
+        html += `<div class="month-day-cell other-month"><span class="month-day-number">${prevMonthLastDate - i + 1}</span></div>`;
+      }
+
+      // Dni bieżącego miesiąca
+      for (let day = 1; day <= lastDateOfMonth; day++) {
+        const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayEvents = eventsByDate[dateString] || [];
+
+        let eventsHtml = dayEvents.map(ev => {
+          const typeClass = `event-type-${(ev.type || 'Sprawdzian').replace(/\s+/g, '-')}`;
+          return `
+            <div class="schedule-event-pill ${typeClass}" 
+                 data-event-id="${ev.id}"
+                 data-subject="${ev.subject}"
+                 data-type="${ev.type || 'Sprawdzian'}"
+                 data-desc="${ev.description || ''}"
+                 data-date="${ev.eventDate}">
+              <strong>${ev.subject}</strong>: ${ev.type || 'Wpis'}
+            </div>
+          `;
+        }).join('');
+
+        html += `
+          <div class="month-day-cell">
+            <span class="month-day-number">${day}</span>
+            ${eventsHtml}
+          </div>
+        `;
+      }
+
+      html += `</div>`;
+      container.innerHTML = html;
+
+      // Nawigacja kalendarza
+      document.getElementById('btn-prev-month').addEventListener('click', () => {
+        calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
+        renderMonthlySchedule(container, isTeacher);
+      });
+
+      document.getElementById('btn-next-month').addEventListener('click', () => {
+        calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + 1);
+        renderMonthlySchedule(container, isTeacher);
+      });
+
+      document.getElementById('btn-today-month').addEventListener('click', () => {
+        calendarCurrentDate = new Date();
+        renderMonthlySchedule(container, isTeacher);
+      });
+
+      // Dodawanie nowego wpisu w terminarzu
+      document.getElementById('btn-add-schedule-event')?.addEventListener('click', () => {
+        openScheduleModal(subjectsArray, isTeacher);
+      });
+
+      // Kliknięcie w istniejący pigułkę wydarzenia (Edycja / Usunięcie lub Podgląd)
+      container.querySelectorAll('.schedule-event-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          openScheduleModal(subjectsArray, isTeacher, {
+            id: pill.dataset.eventId,
+            subject: pill.dataset.subject,
+            type: pill.dataset.type,
+            description: pill.dataset.desc,
+            date: pill.dataset.date
+          });
+        });
+      });
+    }
+
+    // Otwieranie Modala Terminarza
+    function openScheduleModal(subjectsArray, isTeacher, eventData = null) {
+      const subjectSelect = document.getElementById('sm-subject');
+      subjectSelect.innerHTML = subjectsArray.map(s => `<option value="${s}">${s}</option>`).join('');
+      if (subjectsArray.length === 0) {
+        subjectSelect.innerHTML = `<option value="Matematyka">Matematyka</option><option value="Język Polski">Język Polski</option>`;
+      }
+
+      const modalTitle = document.getElementById('schedule-modal-title');
+      const deleteBtn = document.getElementById('btn-delete-schedule');
+      const submitBtn = document.querySelector('#schedule-modal-form button[type="submit"]');
+
+      if (eventData) {
+        // Tryb EDYCJI lub PODGLĄDU
+        document.getElementById('sm-id').value = eventData.id;
+        document.getElementById('sm-subject').value = eventData.subject;
+        document.getElementById('sm-type').value = eventData.type;
+        document.getElementById('sm-description').value = eventData.description;
+        document.getElementById('sm-date').value = eventData.date;
+
+        if (isTeacher) {
+          modalTitle.textContent = "Edycja wpisu w terminarzu";
+          deleteBtn.classList.remove('hidden');
+          submitBtn.classList.remove('hidden');
+        } else {
+          modalTitle.textContent = "Szczegóły wpisu";
+          deleteBtn.classList.add('hidden');
+          submitBtn.classList.add('hidden');
+        }
+      } else {
+        // Tryb NOWEGO WPISU
+        document.getElementById('sm-id').value = '';
+        document.getElementById('sm-description').value = '';
+        document.getElementById('sm-date').value = new Date().toISOString().split('T')[0];
+
+        modalTitle.textContent = "Dodaj wpis do terminarza";
+        deleteBtn.classList.add('hidden');
+        submitBtn.classList.remove('hidden');
+      }
+
+      document.getElementById('schedule-modal').classList.remove('hidden');
     }
 
     async function renderAnnouncements(container) {
@@ -998,30 +1360,76 @@
       container.innerHTML = html;
     }
 
-    // OBSŁUGA MODALA DLA OCEN
-    document.getElementById('btn-close-modal').addEventListener('click', () => {
-      document.getElementById('grade-modal').classList.add('hidden');
+    // OBSŁUGA ZAMYKANIA MODALI
+    document.querySelectorAll('.btn-close-modal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById(btn.dataset.modal).classList.add('hidden');
+      });
     });
 
-    document.getElementById('modal-grade-form').addEventListener('submit', async (e) => {
+    // EDYCJA / USUNIĘCIE OCENY
+    document.getElementById('edit-grade-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const studentId = document.getElementById('modal-student-id').value;
-      const val = Number(document.getElementById('modal-grade-val').value);
-      const cat = document.getElementById('modal-grade-cat').value;
-      const desc = document.getElementById('modal-grade-desc').value;
+      const gradeId = document.getElementById('eg-id').value;
+      const val = Number(document.getElementById('eg-val').value);
+      const cat = document.getElementById('eg-cat').value;
+      const desc = document.getElementById('eg-desc').value;
 
-      await addDoc(collection(db, "grades"), {
-        studentId: studentId,
-        subject: selectedLesson.subject,
+      await setDoc(doc(db, "grades", gradeId), {
         value: val,
         category: cat,
-        description: desc,
-        date: new Date().toISOString().split('T')[0]
-      });
+        description: desc
+      }, { merge: true });
 
-      document.getElementById('grade-modal').classList.add('hidden');
-      document.getElementById('modal-grade-desc').value = '';
+      document.getElementById('edit-grade-modal').classList.add('hidden');
+      alert('Ocena została zaktualizowana!');
       loadTabContent('tab-grades', selectedLesson, true);
+    });
+
+    document.getElementById('btn-delete-grade').addEventListener('click', async () => {
+      const gradeId = document.getElementById('eg-id').value;
+      if (confirm("Czy na pewno chcesz usunąć tę ocenę?")) {
+        await deleteDoc(doc(db, "grades", gradeId));
+        document.getElementById('edit-grade-modal').classList.add('hidden');
+        alert('Ocena usunięta!');
+        loadTabContent('tab-grades', selectedLesson, true);
+      }
+    });
+
+    // OBSŁUGA ZAPISU I USUWANIA W TERMINARZU
+    document.getElementById('schedule-modal-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('sm-id').value;
+      const data = {
+        classId: selectedClassId,
+        subject: document.getElementById('sm-subject').value,
+        type: document.getElementById('sm-type').value,
+        description: document.getElementById('sm-description').value,
+        eventDate: document.getElementById('sm-date').value
+      };
+
+      if (id) {
+        await setDoc(doc(db, "schedule", id), data, { merge: true });
+        alert('Wpis został zaktualizowany!');
+      } else {
+        await addDoc(collection(db, "schedule"), data);
+        alert('Wpis został dodany!');
+      }
+
+      document.getElementById('schedule-modal').classList.add('hidden');
+      const isTeacher = currentUserData.role.includes('teacher') || currentUserData.role.includes('admin');
+      loadTabContent('tab-schedule', selectedLesson, isTeacher);
+    });
+
+    document.getElementById('btn-delete-schedule').addEventListener('click', async () => {
+      const id = document.getElementById('sm-id').value;
+      if (confirm("Czy na pewno chcesz usunąć ten wpis z terminarza?")) {
+        await deleteDoc(doc(db, "schedule", id));
+        document.getElementById('schedule-modal').classList.add('hidden');
+        alert('Wpis usunięty!');
+        const isTeacher = currentUserData.role.includes('teacher') || currentUserData.role.includes('admin');
+        loadTabContent('tab-schedule', selectedLesson, isTeacher);
+      }
     });
   </script>
 </body>
