@@ -335,27 +335,35 @@
       signOut(auth);
     });
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Pobranie roli i danych uzytkownika z Firestore
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    console.log("Zalogowano w Auth. UID uzytkownika:", user.uid);
+    
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-        if (userDocSnap.exists()) {
-          currentUserData = { uid: user.uid, ...userDocSnap.data() };
-          setupDashboard();
-        } else {
-          // Jesli uzytkownik nie ma profilu w firestore (np. pierwsze konto admina)
-          authError.textContent = "Brak profilu w bazie danych. Skontaktuj sie z administratorem.";
-          signOut(auth);
-        }
+      if (userDocSnap.exists()) {
+        console.log("Znaleziono dokument w Firestore:", userDocSnap.data());
+        currentUserData = { uid: user.uid, ...userDocSnap.data() };
+        setupDashboard();
       } else {
-        currentUserData = null;
-        authSection.classList.remove('hidden');
-        appSection.classList.add('hidden');
-        document.body.className = '';
+        console.error("BRAK DOKUMENTU! Nie znaleziono dokumentu o ID:", user.uid, "w kolekcji 'users'.");
+        alert("Brak profilu w bazie danych Firestore! Sprawdz console (F12).");
+        signOut(auth);
       }
-    });
+    } catch (err) {
+      console.error("Blad podczas pobierania danych z Firestore:", err);
+      alert("Blad Firestore: " + err.message);
+    }
+  } else {
+    console.log("Uzytkownik wylogowany.");
+    currentUserData = null;
+    authSection.classList.remove('hidden');
+    appSection.classList.add('hidden');
+    document.body.className = '';
+  }
+});
 
     // -------------------------------------------------------------
     // 3. GENEROWANIE INTERFEJSU DLA RÓŻNYCH RÓL
