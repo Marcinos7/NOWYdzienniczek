@@ -343,52 +343,68 @@
     });
 
     // 3. WIDOKI I NAWIGACJA
-    function setupDashboard() {
-      authSection.classList.add('hidden');
-      appSection.classList.remove('hidden');
+function setupDashboard() {
+  authSection.classList.add('hidden');
+  appSection.classList.remove('hidden');
 
-      document.getElementById('user-display-name').textContent = `${currentUserData.name || ''} ${currentUserData.surname || ''}`;
-      document.getElementById('user-role-badge').textContent = currentUserData.role || 'brak';
+  document.getElementById('user-display-name').textContent = `${currentUserData.name || ''} ${currentUserData.surname || ''}`;
+  
+  // Obsluga roli zarowno jako tekst (string) jak i tablica (array)
+  const roles = Array.isArray(currentUserData.role) ? currentUserData.role : [currentUserData.role];
+  document.getElementById('user-role-badge').textContent = roles.join(' / ');
 
-      document.body.className = `theme-${currentUserData.role}`;
+  // Ustawienie motywu (glownej roli)
+  document.body.className = `theme-${roles[0]}`;
 
-      const menu = document.getElementById('sidebar-menu');
-      menu.innerHTML = '';
+  const menu = document.getElementById('sidebar-menu');
+  menu.innerHTML = '';
 
-      if (currentUserData.role === 'admin') {
-        menu.innerHTML = `
-          <li><a href="#" data-view="admin-schools" class="active">Szkoly</a></li>
-          <li><a href="#" data-view="admin-users">Uzytkownicy</a></li>
-        `;
-        loadView('admin-schools');
-      } else if (currentUserData.role === 'teacher') {
-        menu.innerHTML = `
-          <li><a href="#" data-view="teacher-grades" class="active">Oceny</a></li>
-          <li><a href="#" data-view="teacher-remarks">Uwagi</a></li>
-          <li><a href="#" data-view="teacher-announcements">Ogloszenia i Zebrania</a></li>
-        `;
-        loadView('teacher-grades');
-      } else if (currentUserData.role === 'student') {
-        menu.innerHTML = `
-          <li><a href="#" data-view="student-grades" class="active">Moje Oceny</a></li>
-          <li><a href="#" data-view="student-remarks">Uwagi</a></li>
-          <li><a href="#" data-view="student-announcements">Ogloszenia</a></li>
-          <li><a href="#" data-view="student-excuses">Usprawiedliwienia</a></li>
-        `;
-        loadView('student-grades');
-      } else {
-        document.getElementById('main-content').innerHTML = '<p>Nieznana rola uzytkownika w bazie data.</p>';
-      }
+  // Jesli uzytkownik jest ADMINEM - dodaj opcje admina
+  if (roles.includes('admin')) {
+    menu.innerHTML += `
+      <li><a href="#" data-view="admin-schools">Szkoly (Admin)</a></li>
+      <li><a href="#" data-view="admin-users">Uzytkownicy (Admin)</a></li>
+    `;
+  }
 
-      menu.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          menu.querySelectorAll('a').forEach(l => l.classList.remove('active'));
-          link.classList.add('active');
-          loadView(link.dataset.view);
-        });
-      });
-    }
+  // Jesli uzytkownik jest NAUCZYCIELEM - dodaj opcje nauczyciela
+  if (roles.includes('teacher')) {
+    menu.innerHTML += `
+      <li><a href="#" data-view="teacher-grades">Oceny (Nauczyciel)</a></li>
+      <li><a href="#" data-view="teacher-remarks">Uwagi (Nauczyciel)</a></li>
+      <li><a href="#" data-view="teacher-announcements">Ogloszenia (Nauczyciel)</a></li>
+    `;
+  }
+
+  // Jesli uzytkownik jest UCZNIEM - dodaj opcje ucznia
+  if (roles.includes('student')) {
+    menu.innerHTML += `
+      <li><a href="#" data-view="student-grades">Moje Oceny</a></li>
+      <li><a href="#" data-view="student-remarks">Uwagi</a></li>
+      <li><a href="#" data-view="student-announcements">Ogloszenia</a></li>
+      <li><a href="#" data-view="student-excuses">Usprawiedliwienia</a></li>
+    `;
+  }
+
+  // Aktywacja pierwszego linku w menu
+  const firstLink = menu.querySelector('a');
+  if (firstLink) {
+    firstLink.classList.add('active');
+    loadView(firstLink.dataset.view);
+  } else {
+    document.getElementById('main-content').innerHTML = '<p>Brak przypisanych uprawnien.</p>';
+  }
+
+  // Podpiecie zdarzen klikniecia
+  menu.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      menu.querySelectorAll('a').forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+      loadView(link.dataset.view);
+    });
+  });
+}
 
     async function loadView(viewName) {
       const main = document.getElementById('main-content');
