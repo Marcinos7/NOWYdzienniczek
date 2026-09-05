@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dziennik Elektroniczny</title>
+  <title>Dziennik Elektroniczny - Lekcje i Kalendarz</title>
   <style>
     :root {
       --bg-primary: #f4f6f9;
@@ -42,11 +42,6 @@
       text-align: center;
     }
 
-    .auth-container h2 {
-      margin-bottom: 20px;
-      color: #2d3436;
-    }
-
     .form-group {
       margin-bottom: 15px;
       text-align: left;
@@ -69,7 +64,7 @@
 
     .btn {
       width: 100%;
-      padding: 12px;
+      padding: 10px 15px;
       border: none;
       border-radius: 6px;
       background-color: var(--role-current);
@@ -79,9 +74,7 @@
       transition: opacity 0.2s;
     }
 
-    .btn:hover {
-      opacity: 0.9;
-    }
+    .btn:hover { opacity: 0.9; }
 
     .app-header {
       background-color: var(--role-current);
@@ -90,13 +83,6 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      transition: background-color 0.3s;
-    }
-
-    .app-header .user-info {
-      display: flex;
-      align-items: center;
-      gap: 15px;
     }
 
     .role-badge {
@@ -120,7 +106,6 @@
     .dashboard-layout {
       display: flex;
       flex: 1;
-      min-height: calc(100vh - 60px);
     }
 
     .sidebar {
@@ -130,10 +115,7 @@
       padding: 20px 0;
     }
 
-    .sidebar-menu {
-      list-style: none;
-    }
-
+    .sidebar-menu { list-style: none; }
     .sidebar-menu li a {
       display: block;
       padding: 12px 25px;
@@ -141,7 +123,6 @@
       text-decoration: none;
       font-weight: 500;
       border-left: 4px solid transparent;
-      transition: all 0.2s;
     }
 
     .sidebar-menu li a:hover, .sidebar-menu li a.active {
@@ -164,10 +145,73 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
-    .card h3 {
-      margin-bottom: 15px;
-      border-bottom: 2px solid var(--bg-primary);
-      padding-bottom: 8px;
+    /* Kalendarz Tygodniowy */
+    .week-calendar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .day-card {
+      background: #f8f9fa;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .day-card.active {
+      background: var(--role-current);
+      color: white;
+      border-color: var(--role-current);
+    }
+
+    /* Lista lekcji */
+    .lesson-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .lesson-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--card-bg);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .lesson-item:hover {
+      border-color: var(--role-current);
+    }
+
+    /* Taby lekcji (Frekwencja, Oceny, Uwagi, Terminarz) */
+    .lesson-tabs {
+      display: flex;
+      gap: 10px;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      border-bottom-color: var(--role-current);
+      color: var(--role-current);
     }
 
     table {
@@ -182,33 +226,9 @@
       text-align: left;
     }
 
-    th {
-      background-color: #f8f9fa;
-    }
-
-    .grade-badge {
-      display: inline-block;
-      width: 28px;
-      height: 28px;
-      line-height: 28px;
-      text-align: center;
-      background-color: var(--role-current);
-      color: white;
-      border-radius: 50%;
-      font-weight: bold;
-      margin-right: 5px;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .form-inline {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-bottom: 15px;
-    }
+    th { background-color: #f8f9fa; }
+    .hidden { display: none !important; }
+    .form-inline { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
 
     body.theme-admin { --role-current: var(--color-admin); }
     body.theme-teacher { --role-current: var(--color-teacher); }
@@ -223,22 +243,22 @@
     <div id="auth-error" style="color: red; margin-bottom: 10px; font-size: 0.9rem;"></div>
     <form id="login-form">
       <div class="form-group">
-        <label for="login-email">Email</label>
+        <label>Email</label>
         <input type="email" id="login-email" required placeholder="wprowadz email">
       </div>
       <div class="form-group">
-        <label for="login-password">Haslo</label>
+        <label>Haslo</label>
         <input type="password" id="login-password" required placeholder="wprowadz haslo">
       </div>
       <button type="submit" class="btn">Zaloguj sie</button>
     </form>
   </div>
 
-  <!-- APLIKACJA GŁÓWNA -->
+  <!-- APLIKACJA GLOWNA -->
   <div id="app-section" class="hidden">
     <header class="app-header">
       <h2>Dziennik Elektroniczny</h2>
-      <div class="user-info">
+      <div>
         <span id="user-display-name">Uzytkownik</span>
         <span id="user-role-badge" class="role-badge">Rola</span>
         <button id="btn-logout" class="btn-logout">Wyloguj</button>
@@ -253,545 +273,447 @@
     </div>
   </div>
 
-  <!-- FIREBASE SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-      getAuth, 
-      signInWithEmailAndPassword, 
-      signOut, 
-      onAuthStateChanged 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { 
-      initializeFirestore, 
-      doc, 
-      getDoc, 
-      setDoc, 
-      collection, 
-      addDoc, 
-      getDocs, 
-      query, 
-      where 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 1. KONFIGURACJA FIREBASE
     const firebaseConfig = {
-      apiKey: "AIzaSyCdUEJhYVoWFKeAFo0EmvyR3hqTmGz3cBw",
-      authDomain: "nowydzienniczek.firebaseapp.com",
-      projectId: "nowydzienniczek",
-      storageBucket: "nowydzienniczek.firebasestorage.app",
-      messagingSenderId: "626017005986",
-      appId: "1:626017005986:web:1aee804fac7f3fe08f02fb",
-      measurementId: "G-PZXJ7K76MX"
+      apiKey: "TWOJ_API_KEY",
+      authDomain: "TWOJ_PROJECT_ID.firebaseapp.com",
+      projectId: "TWOJ_PROJECT_ID",
+      storageBucket: "TWOJ_PROJECT_ID.appspot.com",
+      messagingSenderId: "TWOJ_SENDER_ID",
+      appId: "TWOJ_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    
-    // Inicjalizacja z wymuszeniem HTTP, co zapobiega bledom CORS/Fetch wtyczek
-    const db = initializeFirestore(app, {
-      experimentalForceLongPolling: false
-    });
+    const db = initializeFirestore(app, { experimentalForceLongPolling: false });
 
     let currentUserData = null;
+    let selectedClassId = null;
+    let selectedDay = "Poniedzialek";
+    let selectedLesson = null;
 
-    // 2. OBSŁUGA LOGOWANIA I SESJI
-    const authSection = document.getElementById('auth-section');
-    const appSection = document.getElementById('app-section');
-    const loginForm = document.getElementById('login-form');
-    const authError = document.getElementById('auth-error');
+    const daysOfWeek = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek"];
 
-    loginForm.addEventListener('submit', async (e) => {
+    // LOGOWANIE
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      authError.textContent = '';
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
       } catch (err) {
-        authError.textContent = 'Blad logowania: ' + err.message;
+        document.getElementById('auth-error').textContent = 'Blad logowania: ' + err.message;
       }
     });
 
-    document.getElementById('btn-logout').addEventListener('click', () => {
-      signOut(auth);
-    });
+    document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userDocRef = doc(db, "users", user.uid);
-          const userDocSnap = await getDoc(userDocRef);
-
+          const userDocSnap = await getDoc(doc(db, "users", user.uid));
           if (userDocSnap.exists()) {
             currentUserData = { uid: user.uid, ...userDocSnap.data() };
             setupDashboard();
           } else {
-            alert("Brak profilu w bazie danych Firestore dla UID: " + user.uid);
+            alert("Brak profilu uzytkownika w bazie Firestore!");
             signOut(auth);
           }
-        } catch (err) {
-          alert("Blad odczytu profilu z Firestore: " + err.message);
-        }
+        } catch (err) { alert("Blad bazy: " + err.message); }
       } else {
-        currentUserData = null;
-        authSection.classList.remove('hidden');
-        appSection.classList.add('hidden');
-        document.body.className = '';
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('app-section').classList.add('hidden');
       }
     });
 
-    // 3. WIDOKI I NAWIGACJA
-function setupDashboard() {
-  authSection.classList.add('hidden');
-  appSection.classList.remove('hidden');
+    function setupDashboard() {
+      document.getElementById('auth-section').classList.add('hidden');
+      document.getElementById('app-section').classList.remove('hidden');
+      document.getElementById('user-display-name').textContent = `${currentUserData.name || ''} ${currentUserData.surname || ''}`;
+      
+      const roles = Array.isArray(currentUserData.role) ? currentUserData.role : [currentUserData.role];
+      document.getElementById('user-role-badge').textContent = roles.join(' / ');
+      document.body.className = `theme-${roles[0]}`;
 
-  document.getElementById('user-display-name').textContent = `${currentUserData.name || ''} ${currentUserData.surname || ''}`;
-  
-  // Obsluga roli zarowno jako tekst (string) jak i tablica (array)
-  const roles = Array.isArray(currentUserData.role) ? currentUserData.role : [currentUserData.role];
-  document.getElementById('user-role-badge').textContent = roles.join(' / ');
+      const menu = document.getElementById('sidebar-menu');
+      menu.innerHTML = '';
 
-  // Ustawienie motywu (glownej roli)
-  document.body.className = `theme-${roles[0]}`;
+      if (roles.includes('admin')) {
+        menu.innerHTML += `<li><a href="#" data-view="admin-setup" class="active">Struktura i Klasy</a></li>`;
+      }
+      if (roles.includes('teacher') || roles.includes('student')) {
+        menu.innerHTML += `<li><a href="#" data-view="journal-view" class="active">Dziennik Lekcyjny</a></li>`;
+        menu.innerHTML += `<li><a href="#" data-view="announcements-view">Ogloszenia</a></li>`;
+      }
 
-  const menu = document.getElementById('sidebar-menu');
-  menu.innerHTML = '';
+      menu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          menu.querySelectorAll('a').forEach(l => l.classList.remove('active'));
+          link.classList.add('active');
+          loadView(link.dataset.view);
+        });
+      });
 
-  // Jesli uzytkownik jest ADMINEM - dodaj opcje admina
-  if (roles.includes('admin')) {
-    menu.innerHTML += `
-      <li><a href="#" data-view="admin-schools">Szkoly (Admin)</a></li>
-      <li><a href="#" data-view="admin-users">Uzytkownicy (Admin)</a></li>
-    `;
-  }
-
-  // Jesli uzytkownik jest NAUCZYCIELEM - dodaj opcje nauczyciela
-  if (roles.includes('teacher')) {
-    menu.innerHTML += `
-      <li><a href="#" data-view="teacher-grades">Oceny (Nauczyciel)</a></li>
-      <li><a href="#" data-view="teacher-remarks">Uwagi (Nauczyciel)</a></li>
-      <li><a href="#" data-view="teacher-announcements">Ogloszenia (Nauczyciel)</a></li>
-    `;
-  }
-
-  // Jesli uzytkownik jest UCZNIEM - dodaj opcje ucznia
-  if (roles.includes('student')) {
-    menu.innerHTML += `
-      <li><a href="#" data-view="student-grades">Moje Oceny</a></li>
-      <li><a href="#" data-view="student-remarks">Uwagi</a></li>
-      <li><a href="#" data-view="student-announcements">Ogloszenia</a></li>
-      <li><a href="#" data-view="student-excuses">Usprawiedliwienia</a></li>
-    `;
-  }
-
-  // Aktywacja pierwszego linku w menu
-  const firstLink = menu.querySelector('a');
-  if (firstLink) {
-    firstLink.classList.add('active');
-    loadView(firstLink.dataset.view);
-  } else {
-    document.getElementById('main-content').innerHTML = '<p>Brak przypisanych uprawnien.</p>';
-  }
-
-  // Podpiecie zdarzen klikniecia
-  menu.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      menu.querySelectorAll('a').forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-      loadView(link.dataset.view);
-    });
-  });
-}
+      loadView(menu.querySelector('a')?.dataset.view);
+    }
 
     async function loadView(viewName) {
       const main = document.getElementById('main-content');
-      main.innerHTML = '<p>Ladowanie danych...</p>';
+      main.innerHTML = '<p>Ladowanie...</p>';
 
       try {
-        switch (viewName) {
-          case 'admin-schools':
-            await renderAdminSchools(main);
-            break;
-          case 'admin-users':
-            await renderAdminUsers(main);
-            break;
-          case 'teacher-grades':
-            await renderTeacherGrades(main);
-            break;
-          case 'teacher-remarks':
-            await renderTeacherRemarks(main);
-            break;
-          case 'teacher-announcements':
-            await renderTeacherAnnouncements(main);
-            break;
-          case 'student-grades':
-            await renderStudentGrades(main);
-            break;
-          case 'student-remarks':
-            await renderStudentRemarks(main);
-            break;
-          case 'student-announcements':
-            await renderStudentAnnouncements(main);
-            break;
-          case 'student-excuses':
-            await renderStudentExcuses(main);
-            break;
-        }
+        if (viewName === 'admin-setup') await renderAdminSetup(main);
+        else if (viewName === 'journal-view') await renderJournalView(main);
+        else if (viewName === 'announcements-view') await renderAnnouncements(main);
       } catch (err) {
-        main.innerHTML = `
-          <div class="card" style="border-left: 4px solid red;">
-            <h3>Blad pobierania danych z Firestore</h3>
-            <p style="color: red; margin: 10px 0;"><strong>${err.message}</strong></p>
-            <p><small>Sprawdz, czy w konsoli Firebase stworzono odpowiednia kolekcje oraz czy w zaktualizowano Rules.</small></p>
+        main.innerHTML = `<div class="card" style="color:red"><h3>Blad:</h3><p>${err.message}</p></div>`;
+      }
+    }
+
+    // --- ADMIN: KONFIGURACJA KLAS I LEKCJI ---
+    async function renderAdminSetup(container) {
+      const classesSnap = await getDocs(collection(db, "classes"));
+      let classOptions = '';
+      classesSnap.forEach(c => classOptions += `<option value="${c.id}">${c.data().name}</option>`);
+
+      container.innerHTML = `
+        <div class="card">
+          <h3>Tworzenie nowej klasy</h3>
+          <form id="form-add-class" class="form-inline">
+            <input type="text" id="class-name" placeholder="Nazwa klasy (np. 1A)" required>
+            <button type="submit" class="btn">Dodaj klase</button>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Dodawanie lekcji do planu zajec</h3>
+          <form id="form-add-timetable" class="form-inline">
+            <select id="tt-class" required><option value="">Wybierz klase...</option>${classOptions}</select>
+            <select id="tt-day" required>
+              ${daysOfWeek.map(d => `<option value="${d}">${d}</option>`).join('')}
+            </select>
+            <input type="number" id="tt-num" placeholder="Nr lekcji (1-8)" min="1" max="8" required>
+            <input type="text" id="tt-subject" placeholder="Przedmiot (np. Matematyka)" required>
+            <button type="submit" class="btn">Dodaj do planu</button>
+          </form>
+        </div>
+      `;
+
+      document.getElementById('form-add-class').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addDoc(collection(db, "classes"), { name: document.getElementById('class-name').value, schoolId: currentUserData.schoolId || "school1" });
+        loadView('admin-setup');
+      });
+
+      document.getElementById('form-add-timetable').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addDoc(collection(db, "timetable"), {
+          classId: document.getElementById('tt-class').value,
+          day: document.getElementById('tt-day').value,
+          lessonNumber: Number(document.getElementById('tt-num').value),
+          subject: document.getElementById('tt-subject').value
+        });
+        alert('Lekcja dodana do planu!');
+      });
+    }
+
+    // --- WIDOK DZIENNIKA LEKCYJNEGO (DLA TEACHERA I STUDENTA) ---
+    async function renderJournalView(container) {
+      let classes = [];
+      if (currentUserData.role.includes('student')) {
+        selectedClassId = currentUserData.classId || "";
+      } else {
+        const classesSnap = await getDocs(collection(db, "classes"));
+        classesSnap.forEach(c => classes.push({ id: c.id, ...c.data() }));
+        if (!selectedClassId && classes.length > 0) selectedClassId = classes[0].id;
+      }
+
+      let classSelectHtml = '';
+      if (!currentUserData.role.includes('student')) {
+        classSelectHtml = `
+          <div class="form-group" style="max-width: 300px;">
+            <label>Wybierz klase:</label>
+            <select id="select-class">
+              ${classes.map(c => `<option value="${c.id}" ${c.id === selectedClassId ? 'selected' : ''}>${c.name}</option>`).join('')}
+            </select>
           </div>
         `;
       }
-    }
 
-    // 4. FUNKCJE RENDERUJĄCE
-    async function renderAdminSchools(container) {
-      const schoolsSnap = await getDocs(collection(db, "schools"));
-      
       let html = `
         <div class="card">
-          <h3>Dodaj nowa szkole</h3>
-          <form id="form-add-school" class="form-inline">
-            <input type="text" id="school-name" placeholder="Nazwa szkoly" required>
-            <input type="text" id="school-city" placeholder="Miejscowosc" required>
-            <button type="submit" class="btn">Zapisz szkole</button>
-          </form>
+          ${classSelectHtml}
+          <h3>Kalendarz Tygodniowy</h3>
+          <div class="week-calendar">
+            ${daysOfWeek.map(d => `
+              <div class="day-card ${d === selectedDay ? 'active' : ''}" data-day="${d}">
+                <strong>${d}</strong>
+              </div>
+            `).join('')}
+          </div>
         </div>
-        <div class="card">
-          <h3>Lista Szkol</h3>
-          <table>
-            <thead><tr><th>Nazwa</th><th>Miejscowosc</th><th>ID Szkoly</th></tr></thead>
-            <tbody>
+        <div id="lessons-container"></div>
       `;
 
-      if (schoolsSnap.empty) {
-        html += `<tr><td colspan="3">Brak dodanych szkol w bazie.</td></tr>`;
-      } else {
-        schoolsSnap.forEach(docSnap => {
-          const s = docSnap.data();
-          html += `<tr><td>${s.name}</td><td>${s.city}</td><td><small>${docSnap.id}</small></td></tr>`;
+      container.innerHTML = html;
+
+      if (document.getElementById('select-class')) {
+        document.getElementById('select-class').addEventListener('change', (e) => {
+          selectedClassId = e.target.value;
+          renderLessonsList();
         });
       }
 
-      html += `</tbody></table></div>`;
-      container.innerHTML = html;
-
-      document.getElementById('form-add-school').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addDoc(collection(db, "schools"), {
-          name: document.getElementById('school-name').value,
-          city: document.getElementById('school-city').value
+      container.querySelectorAll('.day-card').forEach(card => {
+        card.addEventListener('click', () => {
+          container.querySelectorAll('.day-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          selectedDay = card.dataset.day;
+          renderLessonsList();
         });
-        loadView('admin-schools');
       });
+
+      renderLessonsList();
     }
 
-    async function renderAdminUsers(container) {
-      const schoolsSnap = await getDocs(collection(db, "schools"));
-      const usersSnap = await getDocs(collection(db, "users"));
+    // LISTA LEKCJI W DANYM DNIU
+    async function renderLessonsList() {
+      const container = document.getElementById('lessons-container');
+      container.innerHTML = '<p>Ladowanie planu lekcji...</p>';
 
-      let schoolOptions = '';
-      schoolsSnap.forEach(s => {
-        schoolOptions += `<option value="${s.id}">${s.data().name} (${s.data().city})</option>`;
-      });
+      if (!selectedClassId) {
+        container.innerHTML = '<div class="card"><p>Brak przypisanej klasy.</p></div>';
+        return;
+      }
 
-      let html = `
-        <div class="card">
-          <h3>Tworzenie Profilu Uzytkownika</h3>
-          <form id="form-add-user" class="form-inline">
-            <input type="text" id="u-uid" placeholder="UID konta Firebase Auth" required>
-            <input type="text" id="u-name" placeholder="Imie" required>
-            <input type="text" id="u-surname" placeholder="Nazwisko" required>
-            <select id="u-role">
-              <option value="student">Uczen</option>
-              <option value="teacher">Nauczyciel</option>
-              <option value="admin">Administrator</option>
-            </select>
-            <select id="u-school">${schoolOptions}</select>
-            <button type="submit" class="btn">Stworz profil</button>
-          </form>
-        </div>
-        <div class="card">
-          <h3>Uzytkownicy w systemie</h3>
-          <table>
-            <thead><tr><th>Imie i Nazwisko</th><th>Rola</th><th>UID</th></tr></thead>
-            <tbody>
-      `;
-
-      usersSnap.forEach(uSnap => {
-        const u = uSnap.data();
-        html += `<tr><td>${u.name || ''} ${u.surname || ''}</td><td>${u.role}</td><td><small>${uSnap.id}</small></td></tr>`;
-      });
-
-      html += `</tbody></table></div>`;
-      container.innerHTML = html;
-
-      document.getElementById('form-add-user').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const uid = document.getElementById('u-uid').value;
-        await setDoc(doc(db, "users", uid), {
-          name: document.getElementById('u-name').value,
-          surname: document.getElementById('u-surname').value,
-          role: document.getElementById('u-role').value,
-          schoolId: document.getElementById('u-school').value
-        });
-        loadView('admin-users');
-      });
-    }
-
-    async function renderTeacherGrades(container) {
       const q = query(
-        collection(db, "users"), 
-        where("schoolId", "==", currentUserData.schoolId || ""),
-        where("role", "==", "student")
+        collection(db, "timetable"),
+        where("classId", "==", selectedClassId),
+        where("day", "==", selectedDay)
       );
-      const studentsSnap = await getDocs(q);
+      const ttSnap = await getDocs(q);
 
-      let studentOptions = '';
-      studentsSnap.forEach(s => {
-        studentOptions += `<option value="${s.id}">${s.data().name} ${s.data().surname}</option>`;
-      });
+      let lessons = [];
+      ttSnap.forEach(doc => lessons.push({ id: doc.id, ...doc.data() }));
+      lessons.sort((a, b) => a.lessonNumber - b.lessonNumber);
 
-      container.innerHTML = `
-        <div class="card">
-          <h3>Wstaw nowa ocene</h3>
-          <form id="form-add-grade" class="form-inline">
-            <select id="g-student" required><option value="">Wybierz ucznia...</option>${studentOptions}</select>
-            <input type="text" id="g-subject" placeholder="Przedmiot (np. Matematyka)" required>
-            <select id="g-value" required>
-              <option value="6">6</option><option value="5">5</option>
-              <option value="4">4</option><option value="3">3</option>
-              <option value="2">2</option><option value="1">1</option>
-            </select>
-            <input type="text" id="g-desc" placeholder="Opis (np. Sprawdzian)" required>
-            <button type="submit" class="btn">Dodaj ocene</button>
-          </form>
-        </div>
-      `;
-
-      document.getElementById('form-add-grade').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addDoc(collection(db, "grades"), {
-          studentId: document.getElementById('g-student').value,
-          teacherId: currentUserData.uid,
-          subject: document.getElementById('g-subject').value,
-          value: Number(document.getElementById('g-value').value),
-          description: document.getElementById('g-desc').value,
-          date: new Date().toISOString().split('T')[0]
-        });
-        alert('Ocena zostala dodana!');
-        loadView('teacher-grades');
-      });
-    }
-
-    async function renderTeacherRemarks(container) {
-      const q = query(collection(db, "users"), where("schoolId", "==", currentUserData.schoolId || ""), where("role", "==", "student"));
-      const studentsSnap = await getDocs(q);
-      let studentOptions = '';
-      studentsSnap.forEach(s => { studentOptions += `<option value="${s.id}">${s.data().name} ${s.data().surname}</option>`; });
-
-      container.innerHTML = `
-        <div class="card">
-          <h3>Wpisz uwage dla ucznia</h3>
-          <form id="form-add-remark">
-            <div class="form-group">
-              <label>Uczen</label>
-              <select id="r-student" required>${studentOptions}</select>
-            </div>
-            <div class="form-group">
-              <label>Typ uwagi</label>
-              <select id="r-type"><option value="negatywna">Negatywna</option><option value="pozytywna">Pozytywna</option></select>
-            </div>
-            <div class="form-group">
-              <label>Tresc uwagi</label>
-              <textarea id="r-text" rows="3" required></textarea>
-            </div>
-            <button type="submit" class="btn">Dodaj uwage</button>
-          </form>
-        </div>
-      `;
-
-      document.getElementById('form-add-remark').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addDoc(collection(db, "remarks"), {
-          studentId: document.getElementById('r-student').value,
-          teacherName: `${currentUserData.name} ${currentUserData.surname}`,
-          type: document.getElementById('r-type').value,
-          text: document.getElementById('r-text').value,
-          date: new Date().toISOString().split('T')[0]
-        });
-        alert('Uwaga zapisana');
-        loadView('teacher-remarks');
-      });
-    }
-
-    async function renderTeacherAnnouncements(container) {
-      container.innerHTML = `
-        <div class="card">
-          <h3>Opublikuj Ogloszenie / Informacje o zebraniu</h3>
-          <form id="form-add-announcement">
-            <div class="form-group">
-              <label>Tytul</label>
-              <input type="text" id="a-title" required placeholder="np. Zebranie z rodzicami">
-            </div>
-            <div class="form-group">
-              <label>Tresc informacji</label>
-              <textarea id="a-text" rows="4" required></textarea>
-            </div>
-            <button type="submit" class="btn">Opublikuj</button>
-          </form>
-        </div>
-      `;
-
-      document.getElementById('form-add-announcement').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addDoc(collection(db, "announcements"), {
-          schoolId: currentUserData.schoolId || "",
-          author: `${currentUserData.name} ${currentUserData.surname}`,
-          title: document.getElementById('a-title').value,
-          text: document.getElementById('a-text').value,
-          date: new Date().toISOString().split('T')[0]
-        });
-        alert('Ogloszenie opublikowane!');
-        loadView('teacher-announcements');
-      });
-    }
-
-    async function renderStudentGrades(container) {
-      const q = query(collection(db, "grades"), where("studentId", "==", currentUserData.uid));
-      const gradesSnap = await getDocs(q);
-
-      let html = `
-        <div class="card">
-          <h3>Moje Oceny</h3>
-          <table>
-            <thead><tr><th>Przedmiot</th><th>Oceny</th><th>Opis</th><th>Data</th></tr></thead>
-            <tbody>
-      `;
-
-      if (gradesSnap.empty) {
-        html += `<tr><td colspan="4">Brak wpisanych ocen.</td></tr>`;
-      } else {
-        gradesSnap.forEach(gSnap => {
-          const g = gSnap.data();
-          html += `
-            <tr>
-              <td><strong>${g.subject}</strong></td>
-              <td><span class="grade-badge">${g.value}</span></td>
-              <td>${g.description}</td>
-              <td>${g.date}</td>
-            </tr>
-          `;
-        });
+      if (lessons.length === 0) {
+        container.innerHTML = `<div class="card"><p>Brak lekcji w planie na dzien: ${selectedDay}</p></div>`;
+        return;
       }
 
-      html += `</tbody></table></div>`;
+      let html = `<div class="card"><h3>Lekcje w dniu: ${selectedDay}</h3><div class="lesson-list">`;
+      lessons.forEach(l => {
+        html += `
+          <div class="lesson-item" data-id="${l.id}" data-subject="${l.subject}">
+            <div>
+              <strong>Lekcja ${l.lessonNumber}: ${l.subject}</strong>
+            </div>
+            <button class="btn" style="width: auto;">Otworz dziennik lekcji</button>
+          </div>
+        `;
+      });
+      html += `</div></div><div id="lesson-details"></div>`;
       container.innerHTML = html;
+
+      container.querySelectorAll('.lesson-item').forEach(item => {
+        item.addEventListener('click', () => {
+          selectedLesson = { id: item.dataset.id, subject: item.dataset.subject };
+          renderLessonDetails(selectedLesson);
+        });
+      });
     }
 
-    async function renderStudentRemarks(container) {
-      const q = query(collection(db, "remarks"), where("studentId", "==", currentUserData.uid));
-      const remarksSnap = await getDocs(q);
+    // PANEL KLIKNIĘTEJ LEKCJI (FREKWENCJA, OCENY, UWAGI, TERMINARZ)
+    async function renderLessonDetails(lesson) {
+      const container = document.getElementById('lesson-details');
+      const isTeacher = currentUserData.role.includes('teacher') || currentUserData.role.includes('admin');
 
-      let html = `<div class="card"><h3>Uwagi i Wpisy</h3>`;
-      if (remarksSnap.empty) {
-        html += `<p>Brak uwag.</p>`;
-      } else {
-        remarksSnap.forEach(rSnap => {
-          const r = rSnap.data();
-          const color = r.type === 'negatywna' ? '#d63031' : '#00b894';
-          html += `
-            <div style="border-left: 4px solid ${color}; padding: 10px; margin-bottom: 10px; background: #f9f9f9;">
-              <small>${r.date} | Dodane przez: ${r.teacherName}</small>
-              <p style="margin-top: 5px;">${r.text}</p>
-            </div>
-          `;
+      container.innerHTML = `
+        <div class="card" style="border-top: 4px solid var(--role-current);">
+          <h3>Szczegoly Lekcji: ${lesson.subject} (${selectedDay})</h3>
+          <div class="lesson-tabs">
+            <button class="tab-btn active" data-tab="tab-attendance">Frekwencja</button>
+            <button class="tab-btn" data-tab="tab-grades">Oceny</button>
+            <button class="tab-btn" data-tab="tab-remarks">Uwagi</button>
+            <button class="tab-btn" data-tab="tab-schedule">Terminarz</button>
+          </div>
+          <div id="tab-content"></div>
+        </div>
+      `;
+
+      container.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          loadTabContent(btn.dataset.tab, lesson, isTeacher);
         });
+      });
+
+      loadTabContent('tab-attendance', lesson, isTeacher);
+    }
+
+    async function loadTabContent(tabName, lesson, isTeacher) {
+      const tabContainer = document.getElementById('tab-content');
+      tabContainer.innerHTML = '<p>Ladowanie modułu...</p>';
+
+      // --- TAB 1: FREKWENCJA ---
+      if (tabName === 'tab-attendance') {
+        if (isTeacher) {
+          const studentsSnap = await getDocs(query(collection(db, "users"), where("classId", "==", selectedClassId), where("role", "==", "student")));
+          let html = `<h4>Sprawdzanie obecnosci</h4><table><thead><tr><th>Uczen</th><th>Status</th></tr></thead><tbody>`;
+          studentsSnap.forEach(s => {
+            html += `
+              <tr>
+                <td>${s.data().name} ${s.data().surname}</td>
+                <td>
+                  <select class="att-select" data-student="${s.id}">
+                    <option value="Obecny">Obecny</option>
+                    <option value="Nieobecny">Nieobecny</option>
+                    <option value="Spozniony">Spozniony</option>
+                  </select>
+                </td>
+              </tr>
+            `;
+          });
+          html += `</tbody></table><button id="save-att" class="btn" style="margin-top:15px;">Zapisz frekwencje</button>`;
+          tabContainer.innerHTML = html;
+
+          document.getElementById('save-att')?.addEventListener('click', async () => {
+            const selects = tabContainer.querySelectorAll('.att-select');
+            for (let sel of selects) {
+              await addDoc(collection(db, "attendance"), {
+                studentId: sel.dataset.student,
+                lessonId: lesson.id,
+                day: selectedDay,
+                status: sel.value,
+                date: new Date().toISOString().split('T')[0]
+              });
+            }
+            alert('Frekwencja zapisana!');
+          });
+        } else {
+          const attSnap = await getDocs(query(collection(db, "attendance"), where("studentId", "==", currentUserData.uid), where("lessonId", "==", lesson.id)));
+          let html = `<h4>Moja frekwencja na tej lekcji</h4><table><thead><tr><th>Data</th><th>Status</th></tr></thead><tbody>`;
+          attSnap.forEach(a => { html += `<tr><td>${a.data().date}</td><td>${a.data().status}</td></tr>`; });
+          html += `</tbody></table>`;
+          tabContainer.innerHTML = html;
+        }
       }
+
+      // --- TAB 2: OCENY ---
+      else if (tabName === 'tab-grades') {
+        if (isTeacher) {
+          const studentsSnap = await getDocs(query(collection(db, "users"), where("classId", "==", selectedClassId), where("role", "==", "student")));
+          let studentOpts = '';
+          studentsSnap.forEach(s => studentOpts += `<option value="${s.id}">${s.data().name} ${s.data().surname}</option>`);
+
+          tabContainer.innerHTML = `
+            <form id="form-add-grade" class="form-inline">
+              <select id="g-student" required>${studentOpts}</select>
+              <select id="g-val" required>
+                <option value="6">6</option><option value="5">5</option><option value="4">4</option>
+                <option value="3">3</option><option value="2">2</option><option value="1">1</option>
+              </select>
+              <input type="text" id="g-desc" placeholder="Krotki opis" required>
+              <button type="submit" class="btn">Wstaw ocene</button>
+            </form>
+          `;
+
+          document.getElementById('form-add-grade').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await addDoc(collection(db, "grades"), {
+              studentId: document.getElementById('g-student').value,
+              subject: lesson.subject,
+              value: Number(document.getElementById('g-val').value),
+              description: document.getElementById('g-desc').value,
+              date: new Date().toISOString().split('T')[0]
+            });
+            alert('Ocena wstawiona!');
+          });
+        } else {
+          const gradesSnap = await getDocs(query(collection(db, "grades"), where("studentId", "==", currentUserData.uid), where("subject", "==", lesson.subject)));
+          let html = `<h4>Moje oceny z: ${lesson.subject}</h4><table><thead><tr><th>Ocena</th><th>Opis</th><th>Data</th></tr></thead><tbody>`;
+          gradesSnap.forEach(g => { html += `<tr><td><strong>${g.data().value}</strong></td><td>${g.data().description}</td><td>${g.data().date}</td></tr>`; });
+          html += `</tbody></table>`;
+          tabContainer.innerHTML = html;
+        }
+      }
+
+      // --- TAB 3: UWAGI ---
+      else if (tabName === 'tab-remarks') {
+        if (isTeacher) {
+          const studentsSnap = await getDocs(query(collection(db, "users"), where("classId", "==", selectedClassId), where("role", "==", "student")));
+          let studentOpts = '';
+          studentsSnap.forEach(s => studentOpts += `<option value="${s.id}">${s.data().name} ${s.data().surname}</option>`);
+
+          tabContainer.innerHTML = `
+            <form id="form-add-remark">
+              <div class="form-group"><label>Uczen</label><select id="r-student">${studentOpts}</select></div>
+              <div class="form-group"><label>Tresc uwagi</label><textarea id="r-text" required></textarea></div>
+              <button type="submit" class="btn">Wpisz uwage</button>
+            </form>
+          `;
+
+          document.getElementById('form-add-remark').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await addDoc(collection(db, "remarks"), {
+              studentId: document.getElementById('r-student').value,
+              text: document.getElementById('r-text').value,
+              teacherName: `${currentUserData.name} ${currentUserData.surname}`,
+              date: new Date().toISOString().split('T')[0]
+            });
+            alert('Uwaga dodana!');
+          });
+        } else {
+          const remarksSnap = await getDocs(query(collection(db, "remarks"), where("studentId", "==", currentUserData.uid)));
+          let html = `<h4>Moje uwagi</h4>`;
+          remarksSnap.forEach(r => { html += `<p><strong>${r.data().date}:</strong> ${r.data().text}</p>`; });
+          tabContainer.innerHTML = html;
+        }
+      }
+
+      // --- TAB 4: TERMINARZ ---
+      else if (tabName === 'tab-schedule') {
+        if (isTeacher) {
+          tabContainer.innerHTML = `
+            <form id="form-add-event" class="form-inline">
+              <input type="text" id="ev-title" placeholder="Tytul (np. Sprawdzian)" required>
+              <input type="date" id="ev-date" required>
+              <button type="submit" class="btn">Dodaj wpis do terminarza</button>
+            </form>
+          `;
+
+          document.getElementById('form-add-event').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await addDoc(collection(db, "schedule"), {
+              classId: selectedClassId,
+              subject: lesson.subject,
+              title: document.getElementById('ev-title').value,
+              eventDate: document.getElementById('ev-date').value
+            });
+            alert('Termin zapisany!');
+          });
+        } else {
+          const evSnap = await getDocs(query(collection(db, "schedule"), where("classId", "==", selectedClassId), where("subject", "==", lesson.subject)));
+          let html = `<h4>Wpisane sprawdziany i zadania</h4><table><thead><tr><th>Tytul</th><th>Data</th></tr></thead><tbody>`;
+          evSnap.forEach(ev => { html += `<tr><td>${ev.data().title}</td><td>${ev.data().eventDate}</td></tr>`; });
+          html += `</tbody></table>`;
+          tabContainer.innerHTML = html;
+        }
+      }
+    }
+
+    async function renderAnnouncements(container) {
+      const annSnap = await getDocs(collection(db, "announcements"));
+      let html = `<div class="card"><h3>Ogloszenia Szkolne</h3>`;
+      annSnap.forEach(a => {
+        html += `<div style="border-bottom: 1px solid #ccc; padding: 10px 0;"><h4>${a.data().title}</h4><p>${a.data().text}</p></div>`;
+      });
       html += `</div>`;
       container.innerHTML = html;
-    }
-
-    async function renderStudentAnnouncements(container) {
-      const q = query(collection(db, "announcements"), where("schoolId", "==", currentUserData.schoolId || ""));
-      const annSnap = await getDocs(q);
-
-      let html = `<div class="card"><h3>Tablica Ogloszen Szkolnych</h3>`;
-      if (annSnap.empty) {
-        html += `<p>Brak komunikatow.</p>`;
-      } else {
-        annSnap.forEach(aSnap => {
-          const a = aSnap.data();
-          html += `
-            <div style="border: 1px solid var(--border-color); padding: 15px; border-radius: 6px; margin-bottom: 12px;">
-              <h4>${a.title}</h4>
-              <small style="color: #777;">Data: ${a.date} | Autor: ${a.author}</small>
-              <p style="margin-top: 10px;">${a.text}</p>
-            </div>
-          `;
-        });
-      }
-      html += `</div>`;
-      container.innerHTML = html;
-    }
-
-    async function renderStudentExcuses(container) {
-      const q = query(collection(db, "excuses"), where("studentId", "==", currentUserData.uid));
-      const excusesSnap = await getDocs(q);
-
-      let html = `
-        <div class="card">
-          <h3>Napisz Usprawiedliwienie</h3>
-          <form id="form-add-excuse">
-            <div class="form-group">
-              <label>Data nieobecnosci</label>
-              <input type="date" id="e-date" required>
-            </div>
-            <div class="form-group">
-              <label>Powod / Uzasadnienie</label>
-              <textarea id="e-reason" rows="3" required></textarea>
-            </div>
-            <button type="submit" class="btn">Wyslij do wychowawcy</button>
-          </form>
-        </div>
-        <div class="card">
-          <h3>Historia usprawiedliwien</h3>
-          <table>
-            <thead><tr><th>Data nieobecnosci</th><th>Powod</th><th>Status</th></tr></thead>
-            <tbody>
-      `;
-
-      if (excusesSnap.empty) {
-        html += `<tr><td colspan="3">Brak wyslanych usprawiedliwien.</td></tr>`;
-      } else {
-        excusesSnap.forEach(eSnap => {
-          const e = eSnap.data();
-          html += `<tr><td>${e.absentDate}</td><td>${e.reason}</td><td>${e.status}</td></tr>`;
-        });
-      }
-
-      html += `</tbody></table></div>`;
-      container.innerHTML = html;
-
-      document.getElementById('form-add-excuse').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addDoc(collection(db, "excuses"), {
-          studentId: currentUserData.uid,
-          absentDate: document.getElementById('e-date').value,
-          reason: document.getElementById('e-reason').value,
-          status: 'Oczekujace',
-          submittedAt: new Date().toISOString()
-        });
-        alert('Usprawiedliwienie zostalo wyslane.');
-        loadView('student-excuses');
-      });
     }
   </script>
 </body>
