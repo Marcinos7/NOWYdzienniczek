@@ -418,45 +418,51 @@ onAuthStateChanged(auth, async (user) => {
     // -------------------------------------------------------------
     // 4. ROUTER WIDOKÓW
     // -------------------------------------------------------------
-    async function loadView(viewName) {
-      const main = document.getElementById('main-content');
-      main.innerHTML = '<p>Ladowanie danych...</p>';
+async function loadView(viewName) {
+  const main = document.getElementById('main-content');
+  main.innerHTML = '<p>Ladowanie danych...</p>';
 
-      switch (viewName) {
-        // ADMIN VIEWS
-        case 'admin-schools':
-          renderAdminSchools(main);
-          break;
-        case 'admin-users':
-          renderAdminUsers(main);
-          break;
-
-        // TEACHER VIEWS
-        case 'teacher-grades':
-          renderTeacherGrades(main);
-          break;
-        case 'teacher-remarks':
-          renderTeacherRemarks(main);
-          break;
-        case 'teacher-announcements':
-          renderTeacherAnnouncements(main);
-          break;
-
-        // STUDENT VIEWS
-        case 'student-grades':
-          renderStudentGrades(main);
-          break;
-        case 'student-remarks':
-          renderStudentRemarks(main);
-          break;
-        case 'student-announcements':
-          renderStudentAnnouncements(main);
-          break;
-        case 'student-excuses':
-          renderStudentExcuses(main);
-          break;
-      }
+  try {
+    switch (viewName) {
+      case 'admin-schools':
+        await renderAdminSchools(main);
+        break;
+      case 'admin-users':
+        await renderAdminUsers(main);
+        break;
+      case 'teacher-grades':
+        await renderTeacherGrades(main);
+        break;
+      case 'teacher-remarks':
+        await renderTeacherRemarks(main);
+        break;
+      case 'teacher-announcements':
+        await renderTeacherAnnouncements(main);
+        break;
+      case 'student-grades':
+        await renderStudentGrades(main);
+        break;
+      case 'student-remarks':
+        await renderStudentRemarks(main);
+        break;
+      case 'student-announcements':
+        await renderStudentAnnouncements(main);
+        break;
+      case 'student-excuses':
+        await renderStudentExcuses(main);
+        break;
     }
+  } catch (err) {
+    console.error("Blad podczas ladowania widoku:", err);
+    main.innerHTML = `
+      <div class="card" style="border-left: 4px solid red;">
+        <h3>Blad ladowania danych</h3>
+        <p>${err.message}</p>
+        <p><small>Sprawdz, czy w bazie Firestore istnieje wymagana kolekcja oraz czy zasady (Rules) zezwalaja na jej odczyt.</small></p>
+      </div>
+    `;
+  }
+}
 
     // -------------------------------------------------------------
     // 5. IMPLEMENTACJA WIDOKÓW (FUNKCJONALNOŚCI)
