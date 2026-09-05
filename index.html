@@ -11,7 +11,6 @@
       --text-main: #333333;
       --border-color: #e0e0e0;
       
-      /* Kolory ról */
       --color-admin: #6c5ce7;
       --color-teacher: #0984e3;
       --color-student: #00b894;
@@ -33,7 +32,6 @@
       flex-direction: column;
     }
 
-    /* Auth Screen */
     .auth-container {
       max-width: 400px;
       margin: 80px auto;
@@ -85,12 +83,6 @@
       opacity: 0.9;
     }
 
-    .btn-secondary {
-      background-color: #636e72;
-      margin-top: 10px;
-    }
-
-    /* Dashboard Interface */
     .app-header {
       background-color: var(--role-current);
       color: white;
@@ -128,6 +120,7 @@
     .dashboard-layout {
       display: flex;
       flex: 1;
+      min-height: calc(100vh - 60px);
     }
 
     .sidebar {
@@ -177,7 +170,6 @@
       padding-bottom: 8px;
     }
 
-    /* Tables */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -211,7 +203,6 @@
       display: none !important;
     }
 
-    /* Modals / Forms inline */
     .form-inline {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -219,7 +210,6 @@
       margin-bottom: 15px;
     }
 
-    /* Themes */
     body.theme-admin { --role-current: var(--color-admin); }
     body.theme-teacher { --role-current: var(--color-teacher); }
     body.theme-student { --role-current: var(--color-student); }
@@ -227,9 +217,9 @@
 </head>
 <body>
 
-  <!-- AUTH SECTION -->
+  <!-- EKRAN LOGOWANIA -->
   <div id="auth-section" class="auth-container">
-    <h2>Dziennik Szkolny</h2>
+    <h2>Dziennik Elektroniczny</h2>
     <div id="auth-error" style="color: red; margin-bottom: 10px; font-size: 0.9rem;"></div>
     <form id="login-form">
       <div class="form-group">
@@ -244,8 +234,8 @@
     </form>
   </div>
 
-  <!-- MAIN APP SECTION -->
-  <div id="app-section" class="hidden" style="display: flex; flex-direction: column; min-height: 100vh;">
+  <!-- APLIKACJA GŁÓWNA -->
+  <div id="app-section" class="hidden">
     <header class="app-header">
       <h2>Dziennik Elektroniczny</h2>
       <div class="user-info">
@@ -256,21 +246,14 @@
     </header>
 
     <div class="dashboard-layout">
-      <!-- SIDEBAR -->
       <nav class="sidebar">
-        <ul class="sidebar-menu" id="sidebar-menu">
-          <!-- Wstrzykiwane dynamicznie w zaleznosci od roli -->
-        </ul>
+        <ul class="sidebar-menu" id="sidebar-menu"></ul>
       </nav>
-
-      <!-- MAIN CONTENT AREA -->
-      <main class="main-content" id="main-content">
-        <!-- Widoki ladowane dynamicznie -->
-      </main>
+      <main class="main-content" id="main-content"></main>
     </div>
   </div>
 
-  <!-- FIREBASE SDK (v10 Modular) -->
+  <!-- FIREBASE SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -280,7 +263,7 @@
       onAuthStateChanged 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { 
-      getFirestore, 
+      initializeFirestore, 
       doc, 
       getDoc, 
       setDoc, 
@@ -291,28 +274,27 @@
       where 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // -------------------------------------------------------------
     // 1. KONFIGURACJA FIREBASE
-    // -------------------------------------------------------------
     const firebaseConfig = {
-      apiKey: "AIzaSyCdUEJhYVoWFKeAFo0EmvyR3hqTmGz3cBw",
-      authDomain: "nowydzienniczek.firebaseapp.com",
-      projectId: "nowydzienniczek",
-      storageBucket: "nowydzienniczek.firebasestorage.app",
-      messagingSenderId: "626017005986",
-      appId: "1:626017005986:web:1aee804fac7f3fe08f02fb",
-      measurementId: "G-PZXJ7K76MX"
+      apiKey: "TWOJ_API_KEY",
+      authDomain: "TWOJ_PROJECT_ID.firebaseapp.com",
+      projectId: "TWOJ_PROJECT_ID",
+      storageBucket: "TWOJ_PROJECT_ID.appspot.com",
+      messagingSenderId: "TWOJ_SENDER_ID",
+      appId: "TWOJ_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    
+    // Inicjalizacja z wymuszeniem HTTP, co zapobiega bledom CORS/Fetch wtyczek
+    const db = initializeFirestore(app, {
+      experimentalForceLongPolling: false
+    });
 
     let currentUserData = null;
 
-    // -------------------------------------------------------------
-    // 2. NAWIGACJA I LOGIKA AUTORYZACJI
-    // -------------------------------------------------------------
+    // 2. OBSŁUGA LOGOWANIA I SESJI
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const loginForm = document.getElementById('login-form');
@@ -327,7 +309,7 @@
       try {
         await signInWithEmailAndPassword(auth, email, password);
       } catch (err) {
-        authError.textContent = 'Blad logowania: Sprawdz login i haslo.';
+        authError.textContent = 'Blad logowania: ' + err.message;
       }
     });
 
@@ -335,47 +317,38 @@
       signOut(auth);
     });
 
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    console.log("Zalogowano w Auth. UID uzytkownika:", user.uid);
-    
-    try {
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
 
-      if (userDocSnap.exists()) {
-        console.log("Znaleziono dokument w Firestore:", userDocSnap.data());
-        currentUserData = { uid: user.uid, ...userDocSnap.data() };
-        setupDashboard();
+          if (userDocSnap.exists()) {
+            currentUserData = { uid: user.uid, ...userDocSnap.data() };
+            setupDashboard();
+          } else {
+            alert("Brak profilu w bazie danych Firestore dla UID: " + user.uid);
+            signOut(auth);
+          }
+        } catch (err) {
+          alert("Blad odczytu profilu z Firestore: " + err.message);
+        }
       } else {
-        console.error("BRAK DOKUMENTU! Nie znaleziono dokumentu o ID:", user.uid, "w kolekcji 'users'.");
-        alert("Brak profilu w bazie danych Firestore! Sprawdz console (F12).");
-        signOut(auth);
+        currentUserData = null;
+        authSection.classList.remove('hidden');
+        appSection.classList.add('hidden');
+        document.body.className = '';
       }
-    } catch (err) {
-      console.error("Blad podczas pobierania danych z Firestore:", err);
-      alert("Blad Firestore: " + err.message);
-    }
-  } else {
-    console.log("Uzytkownik wylogowany.");
-    currentUserData = null;
-    authSection.classList.remove('hidden');
-    appSection.classList.add('hidden');
-    document.body.className = '';
-  }
-});
+    });
 
-    // -------------------------------------------------------------
-    // 3. GENEROWANIE INTERFEJSU DLA RÓŻNYCH RÓL
-    // -------------------------------------------------------------
+    // 3. WIDOKI I NAWIGACJA
     function setupDashboard() {
       authSection.classList.add('hidden');
       appSection.classList.remove('hidden');
 
-      document.getElementById('user-display-name').textContent = `${currentUserData.name} ${currentUserData.surname}`;
-      document.getElementById('user-role-badge').textContent = currentUserData.role;
+      document.getElementById('user-display-name').textContent = `${currentUserData.name || ''} ${currentUserData.surname || ''}`;
+      document.getElementById('user-role-badge').textContent = currentUserData.role || 'brak';
 
-      // Stylizacja per rola
       document.body.className = `theme-${currentUserData.role}`;
 
       const menu = document.getElementById('sidebar-menu');
@@ -402,9 +375,10 @@ onAuthStateChanged(auth, async (user) => {
           <li><a href="#" data-view="student-excuses">Usprawiedliwienia</a></li>
         `;
         loadView('student-grades');
+      } else {
+        document.getElementById('main-content').innerHTML = '<p>Nieznana rola uzytkownika w bazie data.</p>';
       }
 
-      // Podpinanie nawigacji
       menu.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
@@ -415,60 +389,52 @@ onAuthStateChanged(auth, async (user) => {
       });
     }
 
-    // -------------------------------------------------------------
-    // 4. ROUTER WIDOKÓW
-    // -------------------------------------------------------------
-async function loadView(viewName) {
-  const main = document.getElementById('main-content');
-  main.innerHTML = '<p>Ladowanie danych...</p>';
+    async function loadView(viewName) {
+      const main = document.getElementById('main-content');
+      main.innerHTML = '<p>Ladowanie danych...</p>';
 
-  try {
-    switch (viewName) {
-      case 'admin-schools':
-        await renderAdminSchools(main);
-        break;
-      case 'admin-users':
-        await renderAdminUsers(main);
-        break;
-      case 'teacher-grades':
-        await renderTeacherGrades(main);
-        break;
-      case 'teacher-remarks':
-        await renderTeacherRemarks(main);
-        break;
-      case 'teacher-announcements':
-        await renderTeacherAnnouncements(main);
-        break;
-      case 'student-grades':
-        await renderStudentGrades(main);
-        break;
-      case 'student-remarks':
-        await renderStudentRemarks(main);
-        break;
-      case 'student-announcements':
-        await renderStudentAnnouncements(main);
-        break;
-      case 'student-excuses':
-        await renderStudentExcuses(main);
-        break;
+      try {
+        switch (viewName) {
+          case 'admin-schools':
+            await renderAdminSchools(main);
+            break;
+          case 'admin-users':
+            await renderAdminUsers(main);
+            break;
+          case 'teacher-grades':
+            await renderTeacherGrades(main);
+            break;
+          case 'teacher-remarks':
+            await renderTeacherRemarks(main);
+            break;
+          case 'teacher-announcements':
+            await renderTeacherAnnouncements(main);
+            break;
+          case 'student-grades':
+            await renderStudentGrades(main);
+            break;
+          case 'student-remarks':
+            await renderStudentRemarks(main);
+            break;
+          case 'student-announcements':
+            await renderStudentAnnouncements(main);
+            break;
+          case 'student-excuses':
+            await renderStudentExcuses(main);
+            break;
+        }
+      } catch (err) {
+        main.innerHTML = `
+          <div class="card" style="border-left: 4px solid red;">
+            <h3>Blad pobierania danych z Firestore</h3>
+            <p style="color: red; margin: 10px 0;"><strong>${err.message}</strong></p>
+            <p><small>Sprawdz, czy w konsoli Firebase stworzono odpowiednia kolekcje oraz czy w zaktualizowano Rules.</small></p>
+          </div>
+        `;
+      }
     }
-  } catch (err) {
-    console.error("Blad podczas ladowania widoku:", err);
-    main.innerHTML = `
-      <div class="card" style="border-left: 4px solid red;">
-        <h3>Blad ladowania danych</h3>
-        <p>${err.message}</p>
-        <p><small>Sprawdz, czy w bazie Firestore istnieje wymagana kolekcja oraz czy zasady (Rules) zezwalaja na jej odczyt.</small></p>
-      </div>
-    `;
-  }
-}
 
-    // -------------------------------------------------------------
-    // 5. IMPLEMENTACJA WIDOKÓW (FUNKCJONALNOŚCI)
-    // -------------------------------------------------------------
-
-    // --- ADMIN: Zarzadzanie Szkołami ---
+    // 4. FUNKCJE RENDERUJĄCE
     async function renderAdminSchools(container) {
       const schoolsSnap = await getDocs(collection(db, "schools"));
       
@@ -488,10 +454,14 @@ async function loadView(viewName) {
             <tbody>
       `;
 
-      schoolsSnap.forEach(docSnap => {
-        const s = docSnap.data();
-        html += `<tr><td>${s.name}</td><td>${s.city}</td><td><small>${docSnap.id}</small></td></tr>`;
-      });
+      if (schoolsSnap.empty) {
+        html += `<tr><td colspan="3">Brak dodanych szkol w bazie.</td></tr>`;
+      } else {
+        schoolsSnap.forEach(docSnap => {
+          const s = docSnap.data();
+          html += `<tr><td>${s.name}</td><td>${s.city}</td><td><small>${docSnap.id}</small></td></tr>`;
+        });
+      }
 
       html += `</tbody></table></div>`;
       container.innerHTML = html;
@@ -506,7 +476,6 @@ async function loadView(viewName) {
       });
     }
 
-    // --- ADMIN: Zarzadzanie Uzytkownikami ---
     async function renderAdminUsers(container) {
       const schoolsSnap = await getDocs(collection(db, "schools"));
       const usersSnap = await getDocs(collection(db, "users"));
@@ -519,9 +488,6 @@ async function loadView(viewName) {
       let html = `
         <div class="card">
           <h3>Tworzenie Profilu Uzytkownika</h3>
-          <p style="font-size: 0.85rem; color: #666; margin-bottom: 10px;">
-            Wskazowka: Najpierw utworz konto w Firebase Auth, a nastepnie powiaz je podajac jego UID tutaj.
-          </p>
           <form id="form-add-user" class="form-inline">
             <input type="text" id="u-uid" placeholder="UID konta Firebase Auth" required>
             <input type="text" id="u-name" placeholder="Imie" required>
@@ -544,7 +510,7 @@ async function loadView(viewName) {
 
       usersSnap.forEach(uSnap => {
         const u = uSnap.data();
-        html += `<tr><td>${u.name} ${u.surname}</td><td>${u.role}</td><td><small>${uSnap.id}</small></td></tr>`;
+        html += `<tr><td>${u.name || ''} ${u.surname || ''}</td><td>${u.role}</td><td><small>${uSnap.id}</small></td></tr>`;
       });
 
       html += `</tbody></table></div>`;
@@ -563,12 +529,10 @@ async function loadView(viewName) {
       });
     }
 
-    // --- NAUCZYCIEL: Wstawianie ocen ---
     async function renderTeacherGrades(container) {
-      // Pobieranie uczniow z tej samej szkoly
       const q = query(
         collection(db, "users"), 
-        where("schoolId", "==", currentUserData.schoolId),
+        where("schoolId", "==", currentUserData.schoolId || ""),
         where("role", "==", "student")
       );
       const studentsSnap = await getDocs(q);
@@ -582,7 +546,7 @@ async function loadView(viewName) {
         <div class="card">
           <h3>Wstaw nowa ocene</h3>
           <form id="form-add-grade" class="form-inline">
-            <select id="g-student" required><option value="">Wybiez ucznia...</option>${studentOptions}</select>
+            <select id="g-student" required><option value="">Wybierz ucznia...</option>${studentOptions}</select>
             <input type="text" id="g-subject" placeholder="Przedmiot (np. Matematyka)" required>
             <select id="g-value" required>
               <option value="6">6</option><option value="5">5</option>
@@ -595,7 +559,7 @@ async function loadView(viewName) {
         </div>
       `;
 
-      document.getElementById('form-add-grade')?.addEventListener('submit', async (e) => {
+      document.getElementById('form-add-grade').addEventListener('submit', async (e) => {
         e.preventDefault();
         await addDoc(collection(db, "grades"), {
           studentId: document.getElementById('g-student').value,
@@ -605,14 +569,13 @@ async function loadView(viewName) {
           description: document.getElementById('g-desc').value,
           date: new Date().toISOString().split('T')[0]
         });
-        alert('Ocena zostala pomyslnie dodana!');
+        alert('Ocena zostala dodana!');
         loadView('teacher-grades');
       });
     }
 
-    // --- NAUCZYCIEL: Dodawanie uwag ---
     async function renderTeacherRemarks(container) {
-      const q = query(collection(db, "users"), where("schoolId", "==", currentUserData.schoolId), where("role", "==", "student"));
+      const q = query(collection(db, "users"), where("schoolId", "==", currentUserData.schoolId || ""), where("role", "==", "student"));
       const studentsSnap = await getDocs(q);
       let studentOptions = '';
       studentsSnap.forEach(s => { studentOptions += `<option value="${s.id}">${s.data().name} ${s.data().surname}</option>`; });
@@ -652,7 +615,6 @@ async function loadView(viewName) {
       });
     }
 
-    // --- NAUCZYCIEL: Ogłoszenia i Zebrania ---
     async function renderTeacherAnnouncements(container) {
       container.innerHTML = `
         <div class="card">
@@ -674,7 +636,7 @@ async function loadView(viewName) {
       document.getElementById('form-add-announcement').addEventListener('submit', async (e) => {
         e.preventDefault();
         await addDoc(collection(db, "announcements"), {
-          schoolId: currentUserData.schoolId,
+          schoolId: currentUserData.schoolId || "",
           author: `${currentUserData.name} ${currentUserData.surname}`,
           title: document.getElementById('a-title').value,
           text: document.getElementById('a-text').value,
@@ -685,7 +647,6 @@ async function loadView(viewName) {
       });
     }
 
-    // --- UCZEŃ: Przegląd ocen ---
     async function renderStudentGrades(container) {
       const q = query(collection(db, "grades"), where("studentId", "==", currentUserData.uid));
       const gradesSnap = await getDocs(q);
@@ -718,7 +679,6 @@ async function loadView(viewName) {
       container.innerHTML = html;
     }
 
-    // --- UCZEŃ: Uwagi ---
     async function renderStudentRemarks(container) {
       const q = query(collection(db, "remarks"), where("studentId", "==", currentUserData.uid));
       const remarksSnap = await getDocs(q);
@@ -742,9 +702,8 @@ async function loadView(viewName) {
       container.innerHTML = html;
     }
 
-    // --- UCZEŃ: Ogłoszenia / Zebrania ---
     async function renderStudentAnnouncements(container) {
-      const q = query(collection(db, "announcements"), where("schoolId", "==", currentUserData.schoolId));
+      const q = query(collection(db, "announcements"), where("schoolId", "==", currentUserData.schoolId || ""));
       const annSnap = await getDocs(q);
 
       let html = `<div class="card"><h3>Tablica Ogloszen Szkolnych</h3>`;
@@ -766,7 +725,6 @@ async function loadView(viewName) {
       container.innerHTML = html;
     }
 
-    // --- UCZEŃ: Usprawiedliwienia ---
     async function renderStudentExcuses(container) {
       const q = query(collection(db, "excuses"), where("studentId", "==", currentUserData.uid));
       const excusesSnap = await getDocs(q);
@@ -793,10 +751,14 @@ async function loadView(viewName) {
             <tbody>
       `;
 
-      excusesSnap.forEach(eSnap => {
-        const e = eSnap.data();
-        html += `<tr><td>${e.absentDate}</td><td>${e.reason}</td><td>${e.status}</td></tr>`;
-      });
+      if (excusesSnap.empty) {
+        html += `<tr><td colspan="3">Brak wyslanych usprawiedliwien.</td></tr>`;
+      } else {
+        excusesSnap.forEach(eSnap => {
+          const e = eSnap.data();
+          html += `<tr><td>${e.absentDate}</td><td>${e.reason}</td><td>${e.status}</td></tr>`;
+        });
+      }
 
       html += `</tbody></table></div>`;
       container.innerHTML = html;
