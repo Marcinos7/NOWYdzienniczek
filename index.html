@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dziennik Elektroniczny - Lekcje i Kalendarz</title>
+  <title>Dziennik Elektroniczny - Lekcje, Kalendarz i Numerki</title>
   <style>
     :root {
       --bg-primary: #f4f6f9;
@@ -145,7 +145,6 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
-    /* Kalendarz Tygodniowy */
     .week-calendar {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -169,7 +168,6 @@
       border-color: var(--role-current);
     }
 
-    /* Lista lekcji */
     .lesson-list {
       display: flex;
       flex-direction: column;
@@ -192,7 +190,6 @@
       border-color: var(--role-current);
     }
 
-    /* Taby lekcji (Frekwencja, Oceny, Uwagi, Terminarz) */
     .lesson-tabs {
       display: flex;
       gap: 10px;
@@ -299,7 +296,6 @@
 
     const daysOfWeek = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek"];
 
-    // LOGOWANIE
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       try {
@@ -342,7 +338,7 @@
       menu.innerHTML = '';
 
       if (roles.includes('admin')) {
-        menu.innerHTML += `<li><a href="#" data-view="admin-setup" class="active">Struktura i Klasy</a></li>`;
+        menu.innerHTML += `<li><a href="#" data-view="admin-setup" class="active">Struktura, Klasy i Numerki</a></li>`;
       }
       if (roles.includes('teacher') || roles.includes('student')) {
         menu.innerHTML += `<li><a href="#" data-view="journal-view" class="active">Dziennik Lekcyjny</a></li>`;
@@ -374,85 +370,102 @@
       }
     }
 
-// --- ADMIN: KONFIGURACJA KLAS, LEKCJI I PRZYPISYWANIE UCZNIOW ---
-async function renderAdminSetup(container) {
-  const classesSnap = await getDocs(collection(db, "classes"));
-  let classOptions = '';
-  classesSnap.forEach(c => classOptions += `<option value="${c.id}">${c.data().name}</option>`);
+    // --- POMOCNICZA FUNKCJA DO POBIERANIA I SORTOWANIA UCZNIOW ---
+    async function getSortedStudentsForClass(classId) {
+      const studentsSnap = await getDocs(query(collection(db, "users"), where("classId", "==", classId), where("role", "==", "student")));
+      let students = [];
+      studentsSnap.forEach(s => students.push({ id: s.id, ...s.data() }));
+      
+      // Sortowanie po numerze w dzienniku (studentNumber), a jak brak numeru to po nazwisku
+      students.sort((a, b) => {
+        const numA = Number(a.studentNumber) || 999;
+        const numB = Number(b.studentNumber) || 999;
+        if (numA !== numB) return numA - numB;
+        return (a.surname || '').localeCompare(b.surname || '');
+      });
+      return students;
+    }
 
-  // Pobranie uzytkownikow z rola student
-  const studentsSnap = await getDocs(query(collection(db, "users"), where("role", "==", "student")));
-  let studentOptions = '';
-  studentsSnap.forEach(s => {
-    const data = s.data();
-    studentOptions += `<option value="${s.id}">${data.name || ''} ${data.surname || ''} (${s.id})</option>`;
-  });
+    // --- ADMIN: KONFIGURACJA KLAS, LEKCJI I NUMERATURA UCZNIOW ---
+    async function renderAdminSetup(container) {
+      const classesSnap = await getDocs(collection(db, "classes"));
+      let classOptions = '';
+      classesSnap.forEach(c => classOptions += `<option value="${c.id}">${c.data().name}</option>`);
 
-  container.innerHTML = `
-    <div class="card">
-      <h3>1. Tworzenie nowej klasy</h3>
-      <form id="form-add-class" class="form-inline">
-        <input type="text" id="class-name" placeholder="Nazwa klasy (np. 1A)" required>
-        <button type="submit" class="btn">Dodaj klase</button>
-      </form>
-    </div>
+      const allStudentsSnap = await getDocs(query(collection(db, "users"), where("role", "==", "student")));
+      let studentOptions = '';
+      allStudentsSnap.forEach(s => {
+        const d = s.data();
+        studentOptions += `<option value="${s.id}">${d.surname || ''} ${d.name || ''} (${s.id})</option>`;
+      });
 
-    <div class="card">
-      <h3>2. Przypisz ucznia do klasy</h3>
-      <form id="form-assign-student" class="form-inline">
-        <select id="as-student" required><option value="">Wybierz ucznia...</option>${studentOptions}</select>
-        <select id="as-class" required><option value="">Wybierz klase...</option>${classOptions}</select>
-        <button type="submit" class="btn">Przypisz do klasy</button>
-      </form>
-    </div>
+      container.innerHTML = `
+        <div class="card">
+          <h3>1. Tworzenie nowej klasy</h3>
+          <form id="form-add-class" class="form-inline">
+            <input type="text" id="class-name" placeholder="Nazwa klasy (np. 1A)" required>
+            <button type="submit" class="btn">Dodaj klase</button>
+          </form>
+        </div>
 
-    <div class="card">
-      <h3>3. Dodawanie lekcji do planu zajec</h3>
-      <form id="form-add-timetable" class="form-inline">
-        <select id="tt-class" required><option value="">Wybierz klase...</option>${classOptions}</select>
-        <select id="tt-day" required>
-          ${daysOfWeek.map(d => `<option value="${d}">${d}</option>`).join('')}
-        </select>
-        <input type="number" id="tt-num" placeholder="Nr lekcji (1-8)" min="1" max="8" required>
-        <input type="text" id="tt-subject" placeholder="Przedmiot (np. Matematyka)" required>
-        <button type="submit" class="btn">Dodaj do planu</button>
-      </form>
-    </div>
-  `;
+        <div class="card">
+          <h3>2. Przypisanie ucznia do klasy i nadanie numerku w dzienniku</h3>
+          <form id="form-assign-student" class="form-inline">
+            <select id="as-student" required><option value="">Wybierz ucznia...</option>${studentOptions}</select>
+            <select id="as-class" required><option value="">Wybierz klase...</option>${classOptions}</select>
+            <input type="number" id="as-number" placeholder="Nr w dzienniku (np. 1)" min="1" max="50" required style="width: 150px;">
+            <button type="submit" class="btn">Zapisz przypisanie</button>
+          </form>
+        </div>
 
-  // Obsluga dodawania klasy
-  document.getElementById('form-add-class').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await addDoc(collection(db, "classes"), { name: document.getElementById('class-name').value, schoolId: currentUserData.schoolId || "school1" });
-    alert('Klasa zostala dodana!');
-    loadView('admin-setup');
-  });
+        <div class="card">
+          <h3>3. Dodawanie lekcji do planu zajec</h3>
+          <form id="form-add-timetable" class="form-inline">
+            <select id="tt-class" required><option value="">Wybierz klase...</option>${classOptions}</select>
+            <select id="tt-day" required>
+              ${daysOfWeek.map(d => `<option value="${d}">${d}</option>`).join('')}
+            </select>
+            <input type="number" id="tt-num" placeholder="Nr lekcji (1-8)" min="1" max="8" required>
+            <input type="text" id="tt-subject" placeholder="Przedmiot (np. Matematyka)" required>
+            <button type="submit" class="btn">Dodaj do planu</button>
+          </form>
+        </div>
+      `;
 
-  // Obsluga przypisywania ucznia do klasy
-  document.getElementById('form-assign-student').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const studentId = document.getElementById('as-student').value;
-    const classId = document.getElementById('as-class').value;
+      document.getElementById('form-add-class').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addDoc(collection(db, "classes"), { name: document.getElementById('class-name').value, schoolId: currentUserData.schoolId || "school1" });
+        alert('Klasa zostala dodana!');
+        loadView('admin-setup');
+      });
 
-    // Aktualizacja pola classId w dokumencie ucznia
-    await setDoc(doc(db, "users", studentId), { classId: classId }, { merge: true });
-    alert('Uczen zostal pomyślnie przypisany do klasy!');
-  });
+      document.getElementById('form-assign-student').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const studentId = document.getElementById('as-student').value;
+        const classId = document.getElementById('as-class').value;
+        const studentNum = Number(document.getElementById('as-number').value);
 
-  // Obsluga dodawania planu
-  document.getElementById('form-add-timetable').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await addDoc(collection(db, "timetable"), {
-      classId: document.getElementById('tt-class').value,
-      day: document.getElementById('tt-day').value,
-      lessonNumber: Number(document.getElementById('tt-num').value),
-      subject: document.getElementById('tt-subject').value
-    });
-    alert('Lekcja dodana do planu!');
-  });
-}
+        await setDoc(doc(db, "users", studentId), {
+          classId: classId,
+          studentNumber: studentNum
+        }, { merge: true });
 
-    // --- WIDOK DZIENNIKA LEKCYJNEGO (DLA TEACHERA I STUDENTA) ---
+        alert('Uczen przypisany do klasy z numerkiem ' + studentNum + '!');
+      });
+
+      document.getElementById('form-add-timetable').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addDoc(collection(db, "timetable"), {
+          classId: document.getElementById('tt-class').value,
+          day: document.getElementById('tt-day').value,
+          lessonNumber: Number(document.getElementById('tt-num').value),
+          subject: document.getElementById('tt-subject').value
+        });
+        alert('Lekcja dodana do planu!');
+      });
+    }
+
+    // --- WIDOK DZIENNIKA LEKCYJNEGO ---
     async function renderJournalView(container) {
       let classes = [];
       if (currentUserData.role.includes('student')) {
@@ -511,7 +524,6 @@ async function renderAdminSetup(container) {
       renderLessonsList();
     }
 
-    // LISTA LEKCJI W DANYM DNIU
     async function renderLessonsList() {
       const container = document.getElementById('lessons-container');
       container.innerHTML = '<p>Ladowanie planu lekcji...</p>';
@@ -559,7 +571,6 @@ async function renderAdminSetup(container) {
       });
     }
 
-    // PANEL KLIKNIĘTEJ LEKCJI (FREKWENCJA, OCENY, UWAGI, TERMINARZ)
     async function renderLessonDetails(lesson) {
       const container = document.getElementById('lesson-details');
       const isTeacher = currentUserData.role.includes('teacher') || currentUserData.role.includes('admin');
@@ -592,15 +603,16 @@ async function renderAdminSetup(container) {
       const tabContainer = document.getElementById('tab-content');
       tabContainer.innerHTML = '<p>Ladowanie modułu...</p>';
 
-      // --- TAB 1: FREKWENCJA ---
+      // --- TAB 1: FREKWENCJA (SORTOWANIE PO NUMERKU) ---
       if (tabName === 'tab-attendance') {
         if (isTeacher) {
-          const studentsSnap = await getDocs(query(collection(db, "users"), where("classId", "==", selectedClassId), where("role", "==", "student")));
-          let html = `<h4>Sprawdzanie obecnosci</h4><table><thead><tr><th>Uczen</th><th>Status</th></tr></thead><tbody>`;
-          studentsSnap.forEach(s => {
+          const sortedStudents = await getSortedStudentsForClass(selectedClassId);
+          let html = `<h4>Sprawdzanie obecnosci</h4><table><thead><tr><th>Nr</th><th>Uczen</th><th>Status</th></tr></thead><tbody>`;
+          sortedStudents.forEach(s => {
             html += `
               <tr>
-                <td>${s.data().name} ${s.data().surname}</td>
+                <td><strong>${s.studentNumber || '-'}</strong></td>
+                <td>${s.surname || ''} ${s.name || ''}</td>
                 <td>
                   <select class="att-select" data-student="${s.id}">
                     <option value="Obecny">Obecny</option>
@@ -636,12 +648,14 @@ async function renderAdminSetup(container) {
         }
       }
 
-      // --- TAB 2: OCENY ---
+      // --- TAB 2: OCENY (LISTA DRAPDOWN SORTOWANA PO NUMERKU) ---
       else if (tabName === 'tab-grades') {
         if (isTeacher) {
-          const studentsSnap = await getDocs(query(collection(db, "users"), where("classId", "==", selectedClassId), where("role", "==", "student")));
+          const sortedStudents = await getSortedStudentsForClass(selectedClassId);
           let studentOpts = '';
-          studentsSnap.forEach(s => studentOpts += `<option value="${s.id}">${s.data().name} ${s.data().surname}</option>`);
+          sortedStudents.forEach(s => {
+            studentOpts += `<option value="${s.id}">${s.studentNumber ? s.studentNumber + '.' : ''} ${s.surname || ''} ${s.name || ''}</option>`;
+          });
 
           tabContainer.innerHTML = `
             <form id="form-add-grade" class="form-inline">
@@ -678,9 +692,11 @@ async function renderAdminSetup(container) {
       // --- TAB 3: UWAGI ---
       else if (tabName === 'tab-remarks') {
         if (isTeacher) {
-          const studentsSnap = await getDocs(query(collection(db, "users"), where("classId", "==", selectedClassId), where("role", "==", "student")));
+          const sortedStudents = await getSortedStudentsForClass(selectedClassId);
           let studentOpts = '';
-          studentsSnap.forEach(s => studentOpts += `<option value="${s.id}">${s.data().name} ${s.data().surname}</option>`);
+          sortedStudents.forEach(s => {
+            studentOpts += `<option value="${s.id}">${s.studentNumber ? s.studentNumber + '.' : ''} ${s.surname || ''} ${s.name || ''}</option>`;
+          });
 
           tabContainer.innerHTML = `
             <form id="form-add-remark">
