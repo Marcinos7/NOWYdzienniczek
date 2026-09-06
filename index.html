@@ -227,6 +227,7 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 0.9rem;
+      min-width: 760px;
     }
 
     .grades-table th, .grades-table td {
@@ -402,6 +403,8 @@
       font-size: 1.5rem;
       cursor: pointer;
       color: #64748b;
+      line-height: 1;
+      padding: 2px 6px;
     }
 
     .modal-actions {
@@ -461,7 +464,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3>Edycja oceny</h3>
-        <button class="modal-close" class="btn-close-modal" data-modal="edit-grade-modal">&times;</button>
+        <button class="modal-close btn-close-modal" data-modal="edit-grade-modal" aria-label="Zamknij">&times;</button>
       </div>
       <form id="edit-grade-form">
         <input type="hidden" id="eg-id">
@@ -503,7 +506,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 id="schedule-modal-title">Wpis w terminarzu</h3>
-        <button class="modal-close" class="btn-close-modal" data-modal="schedule-modal">&times;</button>
+        <button class="modal-close btn-close-modal" data-modal="schedule-modal" aria-label="Zamknij">&times;</button>
       </div>
       <form id="schedule-modal-form">
         <input type="hidden" id="sm-id">
@@ -898,6 +901,18 @@
           gradesByStudent[g.studentId].push(g);
         });
 
+        const assessmentKey = grade => `${grade.category || 'Inne'}|${grade.description || 'Bez opisu'}|${grade.date || ''}`;
+        const assessments = [];
+        const assessmentKeys = new Set();
+        gradesSnap.forEach(gDoc => {
+          const grade = gDoc.data();
+          const key = assessmentKey(grade);
+          if (!assessmentKeys.has(key)) {
+            assessmentKeys.add(key);
+            assessments.push({ key, category: grade.category || 'Inne', description: grade.description || 'Bez opisu', date: grade.date || '' });
+          }
+        });
+
         if (isTeacher) {
           let html = `
             <div style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
@@ -927,7 +942,7 @@
                     <tr>
                       <th style="width: 40px;">LP</th>
                       <th style="width: 220px;">Uczeń</th>
-                      <th>Dotychczasowe Oceny (kliknij aby edytować)</th>
+                      ${assessments.map((assessment, index) => `<th title="${assessment.category} - ${assessment.description}">${assessment.category}<br><span style="font-weight: normal; text-transform: none;">${assessment.description}${assessment.date ? ` (${assessment.date})` : ''}</span></th>`).join('')}
                       <th style="width: 80px; text-align: center;">Średnia</th>
                       <th style="width: 110px;">Nowa ocena</th>
                     </tr>
@@ -941,14 +956,17 @@
             let totalWeighted = 0;
             let totalWeights = 0;
 
-            let gradesBadgesHtml = studentGrades.map(g => {
+            const gradesByAssessment = Object.fromEntries(studentGrades.map(g => [assessmentKey(g), g]));
+            let gradesBadgesHtml = assessments.map(assessment => {
+              const g = gradesByAssessment[assessment.key];
+              if (!g) return '<td style="text-align: center; color: #94a3b8;">-</td>';
               const weight = categoryWeights[g.category] || 1;
               const val = Number(g.value);
               totalWeighted += val * weight;
               totalWeights += weight;
 
               const catInitial = (g.category || 'O')[0].toUpperCase();
-              return `
+              return `<td style="text-align: center;">
                 <div class="grade-badge grade-${val} grade-clickable" 
                      data-grade-id="${g.id}" 
                      data-val="${val}" 
@@ -958,7 +976,7 @@
                   ${val}
                   <span class="grade-category">${catInitial}</span>
                 </div>
-              `;
+              </td>`;
             }).join('');
 
             const avg = totalWeights > 0 ? (totalWeighted / totalWeights).toFixed(2) : '-';
@@ -967,11 +985,7 @@
               <tr>
                 <td><strong>${s.studentNumber || '-'}</strong></td>
                 <td><strong>${s.surname || ''} ${s.name || ''}</strong></td>
-                <td>
-                  <div class="grades-cell-container">
-                    ${gradesBadgesHtml || '<span style="color:#94a3b8; font-size:0.85rem;">Brak ocen</span>'}
-                  </div>
-                </td>
+                ${gradesBadgesHtml || '<td style="text-align: center; color:#94a3b8;">Brak ocen</td>'}
                 <td style="text-align: center;">
                   <span class="average-badge">${avg}</span>
                 </td>
@@ -1130,8 +1144,8 @@
           tabContainer.innerHTML = `
             <form id="form-add-remark">
               <div class="form-group">
-                <label>Uczeń</label>
-                <select id="r-student">${studentOpts}</select>
+                <label>Uczniowie (możesz wybrać kilku)</label>
+                <select id="r-student" multiple size="6" required>${studentOpts}</select>
               </div>
               <div class="form-group">
                 <label>Kategoria uwagi</label>
@@ -1147,15 +1161,20 @@
 
           document.getElementById('form-add-remark').addEventListener('submit', async (e) => {
             e.preventDefault();
-            await addDoc(collection(db, "remarks"), {
-              studentId: document.getElementById('r-student').value,
+            const selectedStudents = Array.from(document.getElementById('r-student').selectedOptions).map(option => option.value);
+            const remarkData = {
               category: document.getElementById('r-category').value,
               text: document.getElementById('r-text').value,
               teacherName: `${currentUserData.name || ''} ${currentUserData.surname || ''}`,
               date: new Date().toISOString().split('T')[0]
-            });
-            alert('Uwaga została wpisana!');
+            };
+
+            for (const studentId of selectedStudents) {
+              await addDoc(collection(db, "remarks"), { ...remarkData, studentId });
+            }
+            alert(`Uwaga została wpisana dla ${selectedStudents.length} uczniów!`);
             document.getElementById('r-text').value = '';
+            document.getElementById('r-student').selectedIndex = -1;
           });
         } else {
           const remarksSnap = await getDocs(query(collection(db, "remarks"), where("studentId", "==", currentUserData.uid)));
