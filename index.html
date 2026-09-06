@@ -255,6 +255,70 @@
     .home-tile-pink { background: #dc3970; }
     .home-tile-slate { background: #3e465b; }
 
+    .educator-panel {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .educator-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .educator-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .educator-section {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-top: 4px solid var(--role-current);
+      border-radius: 6px;
+      padding: 18px;
+    }
+
+    .educator-section h3 { margin-bottom: 8px; color: #3e465b; }
+    .educator-section p { color: #64748b; font-size: 0.9rem; margin-bottom: 15px; }
+    .student-list { display: grid; gap: 10px; }
+    .student-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      background: #f8fafc;
+    }
+
+    .student-row strong { color: #334155; }
+    .student-row small { display: block; color: #64748b; margin-top: 3px; }
+    .behavior-card { margin-bottom: 14px; }
+    .behavior-card summary { cursor: pointer; font-weight: 700; color: #334155; }
+    .remark-list { margin: 12px 0; padding-left: 20px; color: #475569; }
+    .remark-list li { margin-bottom: 5px; }
+    .educator-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .print-card { background: white; border: 1px solid #cbd5e1; padding: 24px; margin-bottom: 18px; }
+    .print-card h3 { color: #1e293b; margin-bottom: 10px; }
+    .print-card table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; }
+    .print-card th, .print-card td { border: 1px solid #cbd5e1; padding: 7px; text-align: left; }
+    .print-card ul { padding-left: 20px; }
+
+    @media print {
+      body * { visibility: hidden; }
+      .print-area, .print-area * { visibility: visible; }
+      .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+      .print-card { border: 0; page-break-after: always; }
+      .print-card:last-child { page-break-after: auto; }
+      .no-print, .hidden-print { display: none !important; }
+    }
+
     @media (max-width: 760px) {
       .app-header { padding: 12px 16px; flex-wrap: wrap; gap: 12px; }
       .app-brand { min-width: auto; }
@@ -267,6 +331,8 @@
       .main-content { padding: 18px 14px; }
       .home-welcome { align-items: flex-start; flex-direction: column; }
       .home-grid { grid-template-columns: 1fr; }
+      .educator-grid, .educator-form-grid { grid-template-columns: 1fr; }
+      .student-row { align-items: flex-start; flex-direction: column; }
     }
 
     .card {
@@ -756,6 +822,7 @@
       const roleTabs = document.getElementById('role-tabs');
       const availableTabs = [];
       if (roles.includes('teacher')) availableTabs.push({ label: 'Dziennik', view: 'journal-view' });
+      if (roles.includes('teacher')) availableTabs.push({ label: 'Panel wychowawcy', view: 'educator-panel' });
       if (roles.includes('admin')) availableTabs.push({ label: 'Administrator', view: 'admin-setup' });
       if (roles.includes('student')) availableTabs.push({ label: 'Uczeń', view: 'journal-view' });
 
@@ -798,6 +865,7 @@
         if (viewName === 'home-view') renderHomeDashboard(main);
         else if (viewName === 'admin-setup') await renderAdminSetup(main);
         else if (viewName === 'journal-view') await renderJournalView(main);
+        else if (viewName === 'educator-panel') await renderEducatorPanel(main);
         else if (viewName === 'announcements-view') await renderAnnouncements(main);
       } catch (err) {
         main.innerHTML = `<div class="card" style="color:red"><h3>Błąd:</h3><p>${err.message}</p></div>`;
@@ -816,6 +884,7 @@
 
       if (roles.includes('teacher')) {
         tiles.push({ icon: '▣', title: 'Dziennik lekcyjny', text: 'Lekcje, oceny, frekwencja i uwagi', view: 'journal-view', color: 'home-tile-blue' });
+        tiles.push({ icon: '♙', title: 'Panel wychowawcy', text: 'Karty osiągnięć, zachowanie i dane uczniów', view: 'educator-panel', color: 'home-tile-pink' });
       }
       if (roles.includes('admin')) {
         tiles.push({ icon: '⚙', title: 'Administrator', text: 'Klasy, uczniowie i plan zajęć', view: 'admin-setup', color: 'home-tile-pink' });
@@ -855,6 +924,196 @@
             tab.classList.toggle('active', tab.dataset.view === target);
           });
           loadView(target);
+        });
+      });
+    }
+
+    async function renderEducatorPanel(container) {
+      if (!currentUserData.role.includes('teacher')) {
+        container.innerHTML = '<div class="card"><p>Brak uprawnień do Panelu wychowawcy.</p></div>';
+        return;
+      }
+
+      container.innerHTML = '<p>Ładowanie Panelu wychowawcy...</p>';
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'student')));
+      const gradesSnap = await getDocs(collection(db, 'grades'));
+      const remarksSnap = await getDocs(collection(db, 'remarks'));
+      const behaviorSnap = await getDocs(collection(db, 'behaviorGrades'));
+      const students = [];
+
+      studentsSnap.forEach(studentDoc => {
+        students.push({ id: studentDoc.id, ...studentDoc.data() });
+      });
+      students.sort((a, b) => {
+        const numberDifference = (Number(a.studentNumber) || 999) - (Number(b.studentNumber) || 999);
+        if (numberDifference !== 0) return numberDifference;
+        return `${a.surname || ''} ${a.name || ''}`.localeCompare(`${b.surname || ''} ${b.name || ''}`);
+      });
+
+      const grades = [];
+      gradesSnap.forEach(gradeDoc => grades.push({ id: gradeDoc.id, ...gradeDoc.data() }));
+      const remarks = [];
+      remarksSnap.forEach(remarkDoc => remarks.push({ id: remarkDoc.id, ...remarkDoc.data() }));
+      const behaviorGrades = {};
+      behaviorSnap.forEach(behaviorDoc => {
+        const behavior = behaviorDoc.data();
+        behaviorGrades[`${behavior.studentId}|${behavior.period}`] = { id: behaviorDoc.id, ...behavior };
+      });
+
+      const studentName = student => `${student.surname || ''} ${student.name || ''}`.trim() || 'Uczeń';
+      const gradesForStudent = studentId => grades.filter(grade => grade.studentId === studentId);
+      const remarksForStudent = studentId => remarks.filter(remark => remark.studentId === studentId);
+      const behaviorGradeFor = (studentId, period) => behaviorGrades[`${studentId}|${period}`];
+      const studentOptions = students.map(student => `<option value="${student.id}">${student.studentNumber ? `${student.studentNumber}. ` : ''}${studentName(student)}</option>`).join('');
+
+      const printCards = students.map(student => {
+        const studentGrades = gradesForStudent(student.id);
+        const studentRemarks = remarksForStudent(student.id);
+        const subjectNames = [...new Set(studentGrades.map(grade => grade.subject || 'Bez przedmiotu'))];
+        const gradesTable = subjectNames.length ? subjectNames.map(subject => `
+          <tr>
+            <td>${subject}</td>
+            <td>${studentGrades.filter(grade => (grade.subject || 'Bez przedmiotu') === subject).map(grade => `${grade.value} (${grade.description || grade.category || 'ocena'})`).join(', ')}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="2">Brak ocen</td></tr>';
+        const remarksList = studentRemarks.length ? studentRemarks.map(remark => `<li>${remark.date || ''}: ${remark.text || ''} (${remark.category || 'Ogólna'})</li>`).join('') : '<li>Brak uwag</li>';
+
+        return `
+          <article class="print-card" data-print-card="${student.id}">
+            <h3>Karta osiągnięć ucznia</h3>
+            <p><strong>${studentName(student)}</strong>${student.studentNumber ? `, numer ${student.studentNumber}` : ''}</p>
+            <p>Klasa: ${student.classId || 'Nieprzypisana'}</p>
+            <table><thead><tr><th>Przedmiot</th><th>Oceny</th></tr></thead><tbody>${gradesTable}</tbody></table>
+            <h4>Uwagi</h4>
+            <ul>${remarksList}</ul>
+          </article>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <section class="educator-panel">
+          <div class="educator-toolbar">
+            <div>
+              <h2>Panel wychowawcy</h2>
+              <p style="color:#64748b; margin-top:5px;">Zarządzaj dokumentacją swojej klasy.</p>
+            </div>
+            <button type="button" class="btn" id="print-all-achievement-cards">Drukuj wszystkie karty</button>
+          </div>
+
+          <div class="educator-grid no-print">
+            <section class="educator-section">
+              <h3>1. Karty osiągnięć uczniów</h3>
+              <p>Wydrukuj oceny ze wszystkich przedmiotów oraz uwagi wybranego ucznia.</p>
+              <div class="student-list">
+                ${students.map(student => `
+                  <div class="student-row">
+                    <div><strong>${studentName(student)}</strong><small>${student.classId || 'Brak klasy'}</small></div>
+                    <button type="button" class="btn btn-sm print-student-card" data-student-id="${student.id}">Drukuj</button>
+                  </div>
+                `).join('') || '<p>Brak uczniów.</p>'}
+              </div>
+            </section>
+
+            <section class="educator-section">
+              <h3>2. Wpisy zachowania</h3>
+              <p>Przejrzyj uwagi ucznia i wystaw ocenę na semestr lub rok szkolny.</p>
+              <div class="student-list">
+                ${students.map(student => {
+                  const studentRemarks = remarksForStudent(student.id);
+                  return `
+                    <details class="behavior-card">
+                      <summary>${studentName(student)}</summary>
+                      <ul class="remark-list">${studentRemarks.length ? studentRemarks.map(remark => `<li>${remark.date || ''}: ${remark.text || ''}</li>`).join('') : '<li>Brak uwag.</li>'}</ul>
+                      <form class="behavior-form" data-student-id="${student.id}">
+                        <div class="form-group"><label>Okres</label><select name="period" required>
+                          <option value="Semestr 1">Semestr 1</option><option value="Semestr 2">Semestr 2</option><option value="Roczna">Ocena roczna</option>
+                        </select></div>
+                        <div class="form-group"><label>Ocena zachowania</label><select name="grade" required>
+                          ${['Wzorowe', 'Bardzo dobre', 'Dobre', 'Poprawne', 'Nieodpowiednie', 'Naganne'].map(value => `<option value="${value}">${value}</option>`).join('')}
+                        </select></div>
+                        <button type="submit" class="btn btn-sm">Zapisz ocenę</button>
+                        <span class="behavior-status" style="margin-left:8px; color:#64748b;"></span>
+                      </form>
+                    </details>
+                  `;
+                }).join('') || '<p>Brak uczniów.</p>'}
+              </div>
+            </section>
+
+            <section class="educator-section">
+              <h3>3. Dane uczniów i rodziców</h3>
+              <p>Edytuj dane kontaktowe ucznia oraz jednego lub dwojga rodziców.</p>
+              <div class="student-list">
+                ${students.map(student => `
+                  <details class="behavior-card">
+                    <summary>${studentName(student)}</summary>
+                    <form class="student-data-form" data-student-id="${student.id}">
+                      <div class="educator-form-grid">
+                        <div class="form-group"><label>Imię ucznia</label><input name="name" value="${student.name || ''}" required></div>
+                        <div class="form-group"><label>Nazwisko ucznia</label><input name="surname" value="${student.surname || ''}" required></div>
+                        <div class="form-group"><label>Email rodzica 1</label><input type="email" name="parent1Email" value="${student.parent1Email || ''}"></div>
+                        <div class="form-group"><label>Imię i nazwisko rodzica 1</label><input name="parent1Name" value="${student.parent1Name || ''}"></div>
+                        <div class="form-group"><label>Email rodzica 2</label><input type="email" name="parent2Email" value="${student.parent2Email || ''}"></div>
+                        <div class="form-group"><label>Imię i nazwisko rodzica 2</label><input name="parent2Name" value="${student.parent2Name || ''}"></div>
+                      </div>
+                      <button type="submit" class="btn btn-sm">Zapisz dane</button>
+                      <span class="student-data-status" style="margin-left:8px; color:#64748b;"></span>
+                    </form>
+                  </details>
+                `).join('') || '<p>Brak uczniów.</p>'}
+              </div>
+            </section>
+          </div>
+
+          <div class="print-area">${printCards || '<p>Brak uczniów do wydruku.</p>'}</div>
+        </section>
+      `;
+
+      const printCardsFor = studentId => {
+        container.querySelectorAll('[data-print-card]').forEach(card => card.classList.toggle('hidden-print', Boolean(studentId) && card.dataset.printCard !== studentId));
+        window.print();
+        window.setTimeout(() => container.querySelectorAll('[data-print-card]').forEach(card => card.classList.remove('hidden-print')), 500);
+      };
+
+      document.getElementById('print-all-achievement-cards').addEventListener('click', () => printCardsFor(null));
+      container.querySelectorAll('.print-student-card').forEach(button => button.addEventListener('click', () => printCardsFor(button.dataset.studentId)));
+
+      container.querySelectorAll('.behavior-form').forEach(form => {
+        const periodSelect = form.elements.period;
+        const gradeSelect = form.elements.grade;
+        const existing = behaviorGradeFor(form.dataset.studentId, periodSelect.value);
+        if (existing) gradeSelect.value = existing.grade;
+        periodSelect.addEventListener('change', () => {
+          const saved = behaviorGradeFor(form.dataset.studentId, periodSelect.value);
+          gradeSelect.value = saved?.grade || 'Wzorowe';
+        });
+        form.addEventListener('submit', async event => {
+          event.preventDefault();
+          await setDoc(doc(db, 'behaviorGrades', `${form.dataset.studentId}_${periodSelect.value.replace(/\s/g, '-')}`), {
+            studentId: form.dataset.studentId,
+            period: periodSelect.value,
+            grade: gradeSelect.value,
+            schoolYear: new Date().getFullYear(),
+            teacherId: currentUserData.uid,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+          form.querySelector('.behavior-status').textContent = 'Zapisano';
+        });
+      });
+
+      container.querySelectorAll('.student-data-form').forEach(form => {
+        form.addEventListener('submit', async event => {
+          event.preventDefault();
+          const formData = new FormData(form);
+          await setDoc(doc(db, 'users', form.dataset.studentId), {
+            name: formData.get('name'),
+            surname: formData.get('surname'),
+            parent1Email: formData.get('parent1Email'),
+            parent1Name: formData.get('parent1Name'),
+            parent2Email: formData.get('parent2Email'),
+            parent2Name: formData.get('parent2Name')
+          }, { merge: true });
+          form.querySelector('.student-data-status').textContent = 'Zapisano';
         });
       });
     }
