@@ -310,6 +310,38 @@
     .print-card th, .print-card td { border: 1px solid #cbd5e1; padding: 7px; text-align: left; }
     .print-card ul { padding-left: 20px; }
 
+    .final-grades-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.4fr);
+      gap: 20px;
+    }
+
+    .final-grade-form {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 18px;
+      height: fit-content;
+    }
+
+    .final-grades-table { width: 100%; border-collapse: collapse; }
+    .final-grades-table th, .final-grades-table td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border-color);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .final-grades-table th { background: #f8fafc; color: #475569; font-size: 0.8rem; }
+    .final-grade-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--role-current);
+      color: white;
+      font-weight: 700;
+    }
+
     @media print {
       body * { visibility: hidden; }
       .print-area, .print-area * { visibility: visible; }
@@ -333,6 +365,7 @@
       .home-grid { grid-template-columns: 1fr; }
       .educator-grid, .educator-form-grid { grid-template-columns: 1fr; }
       .student-row { align-items: flex-start; flex-direction: column; }
+      .final-grades-layout { grid-template-columns: 1fr; }
     }
 
     .card {
@@ -823,6 +856,7 @@
       const availableTabs = [];
       if (roles.includes('teacher')) availableTabs.push({ label: 'Dziennik', view: 'journal-view' });
       if (roles.includes('teacher')) availableTabs.push({ label: 'Panel wychowawcy', view: 'educator-panel' });
+      if (roles.includes('teacher')) availableTabs.push({ label: 'Oceny śródroczne i końcoworoczne', view: 'final-grades' });
       if (roles.includes('admin')) availableTabs.push({ label: 'Administrator', view: 'admin-setup' });
       if (roles.includes('student')) availableTabs.push({ label: 'Uczeń', view: 'journal-view' });
 
@@ -866,6 +900,7 @@
         else if (viewName === 'admin-setup') await renderAdminSetup(main);
         else if (viewName === 'journal-view') await renderJournalView(main);
         else if (viewName === 'educator-panel') await renderEducatorPanel(main);
+        else if (viewName === 'final-grades') await renderFinalGrades(main);
         else if (viewName === 'announcements-view') await renderAnnouncements(main);
       } catch (err) {
         main.innerHTML = `<div class="card" style="color:red"><h3>Błąd:</h3><p>${err.message}</p></div>`;
@@ -885,6 +920,7 @@
       if (roles.includes('teacher')) {
         tiles.push({ icon: '▣', title: 'Dziennik lekcyjny', text: 'Lekcje, oceny, frekwencja i uwagi', view: 'journal-view', color: 'home-tile-blue' });
         tiles.push({ icon: '♙', title: 'Panel wychowawcy', text: 'Karty osiągnięć, zachowanie i dane uczniów', view: 'educator-panel', color: 'home-tile-pink' });
+        tiles.push({ icon: '★', title: 'Oceny śródroczne i końcoworoczne', text: 'Wystawiaj i edytuj oceny klasyfikacyjne', view: 'final-grades', color: 'home-tile-blue' });
       }
       if (roles.includes('admin')) {
         tiles.push({ icon: '⚙', title: 'Administrator', text: 'Klasy, uczniowie i plan zajęć', view: 'admin-setup', color: 'home-tile-pink' });
@@ -924,6 +960,124 @@
             tab.classList.toggle('active', tab.dataset.view === target);
           });
           loadView(target);
+        });
+      });
+    }
+
+    async function renderFinalGrades(container) {
+      if (!currentUserData.role.includes('teacher')) {
+        container.innerHTML = '<div class="card"><p>Brak uprawnień do wystawiania ocen klasyfikacyjnych.</p></div>';
+        return;
+      }
+
+      container.innerHTML = '<p>Ładowanie ocen klasyfikacyjnych...</p>';
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'student')));
+      const gradesSnap = await getDocs(collection(db, 'grades'));
+      const timetableSnap = await getDocs(collection(db, 'timetable'));
+      const finalGradesSnap = await getDocs(collection(db, 'finalGrades'));
+      const students = [];
+      const subjects = new Set();
+      const finalGrades = [];
+
+      studentsSnap.forEach(studentDoc => students.push({ id: studentDoc.id, ...studentDoc.data() }));
+      gradesSnap.forEach(gradeDoc => {
+        const subject = gradeDoc.data().subject;
+        if (subject) subjects.add(subject);
+      });
+      timetableSnap.forEach(timetableDoc => {
+        const subject = timetableDoc.data().subject;
+        if (subject) subjects.add(subject);
+      });
+      finalGradesSnap.forEach(finalGradeDoc => finalGrades.push({ id: finalGradeDoc.id, ...finalGradeDoc.data() }));
+
+      students.sort((a, b) => {
+        const numberDifference = (Number(a.studentNumber) || 999) - (Number(b.studentNumber) || 999);
+        if (numberDifference !== 0) return numberDifference;
+        return `${a.surname || ''} ${a.name || ''}`.localeCompare(`${b.surname || ''} ${b.name || ''}`);
+      });
+
+      const studentName = student => `${student.surname || ''} ${student.name || ''}`.trim() || 'Uczeń';
+      const subjectOptions = [...subjects].sort((a, b) => a.localeCompare(b)).map(subject => `<option value="${subject}">${subject}</option>`).join('');
+      const studentOptions = students.map(student => `<option value="${student.id}">${student.studentNumber ? `${student.studentNumber}. ` : ''}${studentName(student)}</option>`).join('');
+      const gradeOptions = ['Celujący (6)', 'Bardzo dobry (5)', 'Dobry (4)', 'Dostateczny (3)', 'Dopuszczający (2)', 'Niedostateczny (1)'];
+
+      container.innerHTML = `
+        <section class="educator-panel">
+          <div class="educator-toolbar">
+            <div>
+              <h2>Oceny śródroczne i końcoworoczne</h2>
+              <p style="color:#64748b; margin-top:5px;">Wystawiaj oceny klasyfikacyjne z poszczególnych przedmiotów.</p>
+            </div>
+          </div>
+          <div class="final-grades-layout">
+            <form id="final-grade-form" class="final-grade-form">
+              <h3>Wystaw ocenę</h3>
+              <p style="color:#64748b; margin:8px 0 16px;">Wybierz ucznia, przedmiot i okres klasyfikacji.</p>
+              <div class="form-group"><label>Uczeń</label><select name="studentId" required>${studentOptions}</select></div>
+              <div class="form-group"><label>Przedmiot</label><select name="subject" required>${subjectOptions || '<option value="">Brak przedmiotów</option>'}</select></div>
+              <div class="form-group"><label>Okres</label><select name="period" required>
+                <option value="śródroczna">Ocena śródroczna</option>
+                <option value="końcoworoczna">Ocena końcoworoczna</option>
+              </select></div>
+              <div class="form-group"><label>Ocena</label><select name="grade" required>
+                ${gradeOptions.map(option => `<option value="${option.slice(-2, -1)}">${option}</option>`).join('')}
+              </select></div>
+              <button type="submit" class="btn">Zapisz ocenę</button>
+              <span id="final-grade-status" style="display:block; margin-top:10px; color:#64748b;"></span>
+            </form>
+            <div class="card" style="margin:0; overflow-x:auto;">
+              <h3 style="margin-bottom:12px;">Wystawione oceny</h3>
+              <table class="final-grades-table">
+                <thead><tr><th>Uczeń</th><th>Przedmiot</th><th>Okres</th><th>Ocena</th><th></th></tr></thead>
+                <tbody>
+                  ${finalGrades.length ? finalGrades.map(finalGrade => {
+                    const student = students.find(item => item.id === finalGrade.studentId);
+                    return `<tr data-final-grade-row="${finalGrade.id}">
+                      <td>${student ? studentName(student) : finalGrade.studentId}</td>
+                      <td>${finalGrade.subject || ''}</td>
+                      <td>${finalGrade.period || ''}</td>
+                      <td><span class="final-grade-badge">${finalGrade.grade || ''}</span></td>
+                      <td><button type="button" class="btn btn-sm edit-final-grade" data-final-grade-id="${finalGrade.id}">Edytuj</button></td>
+                    </tr>`;
+                  }).join('') : '<tr><td colspan="5" style="color:#64748b;">Nie wystawiono jeszcze ocen.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      `;
+
+      const form = document.getElementById('final-grade-form');
+      const status = document.getElementById('final-grade-status');
+      const setFormValues = finalGrade => {
+        form.elements.studentId.value = finalGrade.studentId;
+        form.elements.subject.value = finalGrade.subject;
+        form.elements.period.value = finalGrade.period;
+        form.elements.grade.value = String(finalGrade.grade);
+        form.dataset.editingId = finalGrade.id;
+      };
+
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const data = {
+          studentId: form.elements.studentId.value,
+          subject: form.elements.subject.value,
+          period: form.elements.period.value,
+          grade: Number(form.elements.grade.value),
+          schoolYear: new Date().getFullYear(),
+          teacherId: currentUserData.uid,
+          updatedAt: new Date().toISOString()
+        };
+        const documentId = form.dataset.editingId || `${data.studentId}_${encodeURIComponent(data.subject)}_${data.period}`;
+        await setDoc(doc(db, 'finalGrades', documentId), data, { merge: true });
+        status.textContent = 'Ocena została zapisana.';
+        await renderFinalGrades(container);
+      });
+
+      container.querySelectorAll('.edit-final-grade').forEach(button => {
+        button.addEventListener('click', () => {
+          const finalGrade = finalGrades.find(item => item.id === button.dataset.finalGradeId);
+          if (finalGrade) setFormValues(finalGrade);
         });
       });
     }
