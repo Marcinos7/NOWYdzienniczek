@@ -307,21 +307,6 @@
       color: #334155;
     }
 
-    /* BADGE FREKWENCJI */
-    .status-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: bold;
-      color: #fff;
-    }
-    .status-obecny { background-color: #10b981; }
-    .status-nieobecny { background-color: #ef4444; }
-    .status-spozniony { background-color: #f59e0b; }
-    .status-usprawiedliwiony { background-color: #3b82f6; }
-    .status-zwolniony { background-color: #6b7280; }
-
     /* KALENDARZ MIESIĘCZNY (TERMINARZ) */
     .month-header {
       display: flex;
@@ -899,7 +884,7 @@
       const tabContainer = document.getElementById('tab-content');
       tabContainer.innerHTML = '<p>Ładowanie modułu...</p>';
 
-      // --- TAB 1: OCENY (MASOWE WPISYWANIE DLA KLASY + EDYCJA) ---
+      // --- TAB 1: OCENY (MASOWE WPISTWANIE DLA KLASY + EDYCJA) ---
       if (tabName === 'tab-grades') {
         const sortedStudents = await getSortedStudentsForClass(selectedClassId);
         
@@ -1094,128 +1079,44 @@
       else if (tabName === 'tab-attendance') {
         if (isTeacher) {
           const sortedStudents = await getSortedStudentsForClass(selectedClassId);
-          let html = `
-            <h4>Sprawdzanie obecności: ${lesson.subject}</h4>
-            <p style="font-size:0.85rem; color:#64748b; margin-bottom:15px;">Dzień: ${selectedDay}, Data: ${new Date().toISOString().split('T')[0]}</p>
-            <div class="grades-table-container">
-              <table class="grades-table">
-                <thead>
-                  <tr>
-                    <th style="width: 40px;">LP</th>
-                    <th>Uczeń</th>
-                    <th style="width: 200px;">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-          `;
+          let html = `<h4>Sprawdzanie obecności</h4><table class="grades-table"><thead><tr><th>Nr</th><th>Uczeń</th><th>Status</th></tr></thead><tbody>`;
           sortedStudents.forEach(s => {
             html += `
               <tr>
                 <td><strong>${s.studentNumber || '-'}</strong></td>
-                <td><strong>${s.surname || ''} ${s.name || ''}</strong></td>
+                <td>${s.surname || ''} ${s.name || ''}</td>
                 <td>
-                  <select class="att-select" data-student="${s.id}" style="padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); width: 100%;">
+                  <select class="att-select" data-student="${s.id}">
                     <option value="Obecny">Obecny</option>
                     <option value="Nieobecny">Nieobecny</option>
                     <option value="Spóźniony">Spóźniony</option>
-                    <option value="Usprawiedliwiony">Usprawiedliwiony</option>
-                    <option value="Zwolniony">Zwolniony</option>
                   </select>
                 </td>
               </tr>
             `;
           });
-          html += `
-                </tbody>
-              </table>
-            </div>
-            <button id="save-att" class="btn" style="margin-top: 15px; width: 100%;">Zapisz frekwencję</button>
-          `;
+          html += `</tbody></table><button id="save-att" class="btn" style="margin-top:15px;">Zapisz frekwencję</button>`;
           tabContainer.innerHTML = html;
 
           document.getElementById('save-att')?.addEventListener('click', async () => {
             const selects = tabContainer.querySelectorAll('.att-select');
-            let savedCount = 0;
             for (let sel of selects) {
               await addDoc(collection(db, "attendance"), {
                 studentId: sel.dataset.student,
                 lessonId: lesson.id,
-                subject: lesson.subject,
                 day: selectedDay,
                 status: sel.value,
                 date: new Date().toISOString().split('T')[0]
               });
-              savedCount++;
             }
-            alert(`Pomyślnie zapisano frekwencję dla ${savedCount} uczniów!`);
+            alert('Frekwencja zapisana!');
           });
         } else {
-          // WIDOK UCZNIA
-          const attSnap = await getDocs(query(collection(db, "attendance"), where("studentId", "==", currentUserData.uid)));
-          let records = [];
-          attSnap.forEach(a => records.push({ id: a.id, ...a.data() }));
-
-          // Filtrowanie wpisów dla widoku konkretnego przedmiotu / wszystkich
-          let html = `
-            <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-              <h4>Moja frekwencja</h4>
-              <div>
-                <label style="font-size:0.85rem; font-weight:bold; margin-right:5px;">Filtruj przedmiot:</label>
-                <select id="att-filter-subject" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color);">
-                  <option value="ALL">Wszystkie przedmioty</option>
-                  <option value="${lesson.subject}" selected>${lesson.subject}</option>
-                </select>
-              </div>
-            </div>
-            <div id="att-student-table-container"></div>
-          `;
+          const attSnap = await getDocs(query(collection(db, "attendance"), where("studentId", "==", currentUserData.uid), where("lessonId", "==", lesson.id)));
+          let html = `<h4>Moja frekwencja</h4><table class="grades-table"><thead><tr><th>Data</th><th>Status</th></tr></thead><tbody>`;
+          attSnap.forEach(a => { html += `<tr><td>${a.data().date}</td><td>${a.data().status}</td></tr>`; });
+          html += `</tbody></table>`;
           tabContainer.innerHTML = html;
-
-          const renderStudentAttTable = (filterSubject) => {
-            const filteredRecords = records.filter(r => filterSubject === 'ALL' || r.subject === filterSubject);
-            filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            const container = document.getElementById('att-student-table-container');
-            if (filteredRecords.length === 0) {
-              container.innerHTML = '<p style="color:#64748b; margin-top: 10px;">Brak zarejestrowanych wpisów frekwencji.</p>';
-              return;
-            }
-
-            let tHtml = `
-              <div class="grades-table-container">
-                <table class="grades-table">
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Dzień</th>
-                      <th>Przedmiot</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-            `;
-
-            filteredRecords.forEach(r => {
-              const statusClass = (r.status || 'Obecny').toLowerCase().replace('ó', 'o');
-              tHtml += `
-                <tr>
-                  <td><strong>${r.date || '-'}</strong></td>
-                  <td>${r.day || '-'}</td>
-                  <td>${r.subject || '-'}</td>
-                  <td><span class="status-badge status-${statusClass}">${r.status}</span></td>
-                </tr>
-              `;
-            });
-
-            tHtml += `</tbody></table></div>`;
-            container.innerHTML = tHtml;
-          };
-
-          renderStudentAttTable(lesson.subject);
-
-          document.getElementById('att-filter-subject').addEventListener('change', (e) => {
-            renderStudentAttTable(e.target.value);
-          });
         }
       }
 
