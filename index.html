@@ -856,7 +856,6 @@
       const availableTabs = [];
       if (roles.includes('teacher')) availableTabs.push({ label: 'Dziennik', view: 'journal-view' });
       if (roles.includes('teacher')) availableTabs.push({ label: 'Panel wychowawcy', view: 'educator-panel' });
-      if (roles.includes('teacher')) availableTabs.push({ label: 'Oceny śródroczne i końcoworoczne', view: 'final-grades' });
       if (roles.includes('admin')) availableTabs.push({ label: 'Administrator', view: 'admin-setup' });
       if (roles.includes('student')) availableTabs.push({ label: 'Uczeń', view: 'journal-view' });
 
@@ -900,7 +899,6 @@
         else if (viewName === 'admin-setup') await renderAdminSetup(main);
         else if (viewName === 'journal-view') await renderJournalView(main);
         else if (viewName === 'educator-panel') await renderEducatorPanel(main);
-        else if (viewName === 'final-grades') await renderFinalGrades(main);
         else if (viewName === 'announcements-view') await renderAnnouncements(main);
       } catch (err) {
         main.innerHTML = `<div class="card" style="color:red"><h3>Błąd:</h3><p>${err.message}</p></div>`;
@@ -920,7 +918,6 @@
       if (roles.includes('teacher')) {
         tiles.push({ icon: '▣', title: 'Dziennik lekcyjny', text: 'Lekcje, oceny, frekwencja i uwagi', view: 'journal-view', color: 'home-tile-blue' });
         tiles.push({ icon: '♙', title: 'Panel wychowawcy', text: 'Karty osiągnięć, zachowanie i dane uczniów', view: 'educator-panel', color: 'home-tile-pink' });
-        tiles.push({ icon: '★', title: 'Oceny śródroczne i końcoworoczne', text: 'Wystawiaj i edytuj oceny klasyfikacyjne', view: 'final-grades', color: 'home-tile-blue' });
       }
       if (roles.includes('admin')) {
         tiles.push({ icon: '⚙', title: 'Administrator', text: 'Klasy, uczniowie i plan zajęć', view: 'admin-setup', color: 'home-tile-pink' });
@@ -978,9 +975,11 @@
       const students = [];
       const subjects = new Set();
       const finalGrades = [];
+      const currentGrades = [];
 
       studentsSnap.forEach(studentDoc => students.push({ id: studentDoc.id, ...studentDoc.data() }));
       gradesSnap.forEach(gradeDoc => {
+        currentGrades.push({ id: gradeDoc.id, ...gradeDoc.data() });
         const subject = gradeDoc.data().subject;
         if (subject) subjects.add(subject);
       });
@@ -1015,6 +1014,10 @@
               <p style="color:#64748b; margin:8px 0 16px;">Wybierz ucznia, przedmiot i okres klasyfikacji.</p>
               <div class="form-group"><label>Uczeń</label><select name="studentId" required>${studentOptions}</select></div>
               <div class="form-group"><label>Przedmiot</label><select name="subject" required>${subjectOptions || '<option value="">Brak przedmiotów</option>'}</select></div>
+              <div id="current-grades-summary" class="card" style="margin: 0 0 15px; padding: 12px;">
+                <strong>Oceny bieżące i średnia</strong>
+                <p style="color:#64748b; margin-top:8px;">Wybierz ucznia i przedmiot, aby zobaczyć oceny.</p>
+              </div>
               <div class="form-group"><label>Okres</label><select name="period" required>
                 <option value="śródroczna">Ocena śródroczna</option>
                 <option value="końcoworoczna">Ocena końcoworoczna</option>
@@ -1049,12 +1052,33 @@
 
       const form = document.getElementById('final-grade-form');
       const status = document.getElementById('final-grade-status');
+      const currentGradesSummary = document.getElementById('current-grades-summary');
+      const renderCurrentGrades = () => {
+        const selectedGrades = currentGrades.filter(grade => grade.studentId === form.elements.studentId.value && grade.subject === form.elements.subject.value);
+        let weightedTotal = 0;
+        let weightTotal = 0;
+        selectedGrades.forEach(grade => {
+          const weight = categoryWeights[grade.category] || 1;
+          weightedTotal += Number(grade.value) * weight;
+          weightTotal += weight;
+        });
+        const average = weightTotal ? (weightedTotal / weightTotal).toFixed(2) : '-';
+        currentGradesSummary.innerHTML = selectedGrades.length ? `
+          <strong>Oceny bieżące i średnia ważona</strong>
+          <div class="grades-cell-container" style="margin:10px 0;">${selectedGrades.map(grade => `<span class="grade-badge grade-${grade.value}" title="${grade.category || ''} - ${grade.description || ''}">${grade.value}</span>`).join('')}</div>
+          <span>Średnia ważona: <span class="average-badge">${average}</span></span>
+        ` : '<strong>Oceny bieżące i średnia</strong><p style="color:#64748b; margin-top:8px;">Brak ocen z wybranego przedmiotu.</p>';
+      };
+      form.elements.studentId.addEventListener('change', renderCurrentGrades);
+      form.elements.subject.addEventListener('change', renderCurrentGrades);
+      renderCurrentGrades();
       const setFormValues = finalGrade => {
         form.elements.studentId.value = finalGrade.studentId;
         form.elements.subject.value = finalGrade.subject;
         form.elements.period.value = finalGrade.period;
         form.elements.grade.value = String(finalGrade.grade);
         form.dataset.editingId = finalGrade.id;
+        renderCurrentGrades();
       };
 
       form.addEventListener('submit', async event => {
@@ -1270,6 +1294,12 @@
           form.querySelector('.student-data-status').textContent = 'Zapisano';
         });
       });
+
+      const finalGradesSection = document.createElement('div');
+      finalGradesSection.id = 'final-grades-section';
+      finalGradesSection.className = 'no-print';
+      container.querySelector('.educator-panel').insertBefore(finalGradesSection, container.querySelector('.print-area'));
+      await renderFinalGrades(finalGradesSection);
     }
 
     async function getSortedStudentsForClass(classId) {
