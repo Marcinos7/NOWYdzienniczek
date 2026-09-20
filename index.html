@@ -792,6 +792,7 @@
     let currentUserData = null;
     let selectedClassId = null;
     let selectedDay = "Poniedzialek";
+    let selectedSubject = "";
     let selectedLesson = null;
     let calendarCurrentDate = new Date();
 
@@ -1416,16 +1417,19 @@
         `;
       }
 
+      const timetableSnap = await getDocs(query(collection(db, "timetable"), where("classId", "==", selectedClassId)));
+      const subjects = [...new Set(timetableSnap.docs.map(timetableDoc => timetableDoc.data().subject).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      if (!selectedSubject || !subjects.includes(selectedSubject)) selectedSubject = subjects[0] || "";
+
       let html = `
         <div class="card">
           ${classSelectHtml}
-          <h3>Kalendarz Tygodniowy</h3>
-          <div class="week-calendar">
-            ${daysOfWeek.map(d => `
-              <div class="day-card ${d === selectedDay ? 'active' : ''}" data-day="${d}">
-                <strong>${d}</strong>
-              </div>
-            `).join('')}
+          <h3>Wybierz przedmiot</h3>
+          <div class="form-group" style="max-width: 420px; margin-top: 12px;">
+            <label for="select-subject">Przedmiot:</label>
+            <select id="select-subject" ${subjects.length ? '' : 'disabled'}>
+              ${subjects.map(subject => `<option value="${subject}" ${subject === selectedSubject ? 'selected' : ''}>${subject}</option>`).join('') || '<option>Brak przedmiotów w planie</option>'}
+            </select>
           </div>
         </div>
         <div id="lessons-container"></div>
@@ -1436,17 +1440,14 @@
       if (document.getElementById('select-class')) {
         document.getElementById('select-class').addEventListener('change', (e) => {
           selectedClassId = e.target.value;
-          renderLessonsList();
+          selectedSubject = "";
+          renderJournalView(container);
         });
       }
 
-      container.querySelectorAll('.day-card').forEach(card => {
-        card.addEventListener('click', () => {
-          container.querySelectorAll('.day-card').forEach(c => c.classList.remove('active'));
-          card.classList.add('active');
-          selectedDay = card.dataset.day;
-          renderLessonsList();
-        });
+      document.getElementById('select-subject')?.addEventListener('change', (e) => {
+        selectedSubject = e.target.value;
+        renderLessonsList();
       });
 
       renderLessonsList();
@@ -1461,28 +1462,28 @@
         return;
       }
 
-      const q = query(
-        collection(db, "timetable"),
-        where("classId", "==", selectedClassId),
-        where("day", "==", selectedDay)
-      );
+      const q = query(collection(db, "timetable"), where("classId", "==", selectedClassId));
       const ttSnap = await getDocs(q);
 
       let lessons = [];
-      ttSnap.forEach(doc => lessons.push({ id: doc.id, ...doc.data() }));
+      ttSnap.forEach(timetableDoc => {
+        const lesson = { id: timetableDoc.id, ...timetableDoc.data() };
+        if (!selectedSubject || lesson.subject === selectedSubject) lessons.push(lesson);
+      });
       lessons.sort((a, b) => a.lessonNumber - b.lessonNumber);
 
       if (lessons.length === 0) {
-        container.innerHTML = `<div class="card"><p>Brak lekcji w planie na dzień: ${selectedDay}</p></div>`;
+        container.innerHTML = `<div class="card"><p>Brak lekcji dla wybranego przedmiotu.</p></div>`;
         return;
       }
 
-      let html = `<div class="card"><h3>Lekcje w dniu: ${selectedDay}</h3><div class="lesson-list">`;
+      let html = `<div class="card"><h3>Lekcje: ${selectedSubject}</h3><div class="lesson-list">`;
       lessons.forEach(l => {
         html += `
-          <div class="lesson-item" data-id="${l.id}" data-subject="${l.subject}">
+          <div class="lesson-item" data-id="${l.id}" data-subject="${l.subject}" data-day="${l.day || ''}">
             <div>
-              <strong>Lekcja ${l.lessonNumber}: ${l.subject}</strong>
+              <strong>${l.subject}</strong>
+              <small style="display:block; color:#64748b; margin-top:4px;">${l.day || ''}, lekcja ${l.lessonNumber}</small>
             </div>
             <button class="btn" style="width: auto;">Otwórz dziennik lekcji</button>
           </div>
@@ -1494,6 +1495,7 @@
       container.querySelectorAll('.lesson-item').forEach(item => {
         item.addEventListener('click', () => {
           selectedLesson = { id: item.dataset.id, subject: item.dataset.subject };
+          selectedDay = item.dataset.day || selectedDay;
           renderLessonDetails(selectedLesson);
         });
       });
