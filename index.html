@@ -1605,7 +1605,13 @@
             const gradesByAssessment = Object.fromEntries(studentGrades.map(g => [assessmentKey(g), g]));
             let gradesBadgesHtml = assessments.map(assessment => {
               const g = gradesByAssessment[assessment.key];
-              if (!g) return '<td style="text-align: center; color: #94a3b8;">-</td>';
+              if (!g) return `<td style="text-align: center;">
+                <select class="existing-grade-input" data-student-id="${s.id}" data-category="${assessment.category}" data-description="${assessment.description}" data-date="${assessment.date}" aria-label="Wpisz ocenę dla ${s.surname || ''} ${s.name || ''}" style="padding: 5px; border: 1px solid var(--border-color); border-radius: 4px;">
+                  <option value="">-</option>
+                  <option value="6">6</option><option value="5">5</option><option value="4">4</option>
+                  <option value="3">3</option><option value="2">2</option><option value="1">1</option>
+                </select>
+              </td>`;
               const weight = categoryWeights[g.category] || 1;
               const val = Number(g.value);
               totalWeighted += val * weight;
@@ -1667,7 +1673,22 @@
             }
 
             const inputs = tabContainer.querySelectorAll('.bulk-grade-input');
+            const existingInputs = tabContainer.querySelectorAll('.existing-grade-input');
             let addedCount = 0;
+
+            for (let input of existingInputs) {
+              if (input.value) {
+                await addDoc(collection(db, "grades"), {
+                  studentId: input.dataset.studentId,
+                  subject: lesson.subject,
+                  value: Number(input.value),
+                  category: input.dataset.category,
+                  description: input.dataset.description,
+                  date: input.dataset.date || new Date().toISOString().split('T')[0]
+                });
+                addedCount++;
+              }
+            }
 
             for (let input of inputs) {
               if (input.value) {
